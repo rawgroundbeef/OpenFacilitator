@@ -32,7 +32,8 @@ interface DomainStatus {
 /**
  * Get Railway configuration from environment
  * Railway automatically provides RAILWAY_SERVICE_ID and RAILWAY_ENVIRONMENT_ID
- * You only need to set RAILWAY_TOKEN (project token from Project Settings → Tokens)
+ * You need to set RAILWAY_TOKEN with an ACCOUNT token from railway.app/account/tokens
+ * (Account tokens have more permissions than project tokens)
  */
 function getConfig(): RailwayConfig {
   const apiToken = process.env.RAILWAY_TOKEN;
@@ -57,13 +58,15 @@ async function railwayQuery<T>(query: string, variables: Record<string, unknown>
     variables: JSON.stringify(variables, null, 2),
   });
   
-  // Railway uses different headers based on token type
-  // Project tokens use 'Project-Access-Token', account tokens use 'Authorization: Bearer'
+  // Railway uses different headers based on token type:
+  // - Project tokens: 'Project-Access-Token'
+  // - Account tokens: 'Authorization: Bearer'
+  // We'll use Authorization: Bearer for account tokens (more permissions)
   const response = await fetch(RAILWAY_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Project-Access-Token': config.apiToken,
+      'Authorization': `Bearer ${config.apiToken}`,
     },
     body: JSON.stringify({ query, variables }),
   });
