@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { format, parseISO, isValid } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -10,18 +11,25 @@ export function formatAddress(address: string): string {
 }
 
 export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  // Check if date is valid
-  if (isNaN(date.getTime())) {
+  if (!dateString) return 'N/A';
+  
+  try {
+    // Try parsing as ISO string first
+    let date = parseISO(dateString);
+    
+    // If that doesn't work, try regular Date constructor
+    if (!isValid(date)) {
+      date = new Date(dateString);
+    }
+    
+    // If still invalid, return the original string
+    if (!isValid(date)) {
+      return dateString;
+    }
+    
+    return format(date, 'MMM d, yyyy, h:mm a');
+  } catch {
     return dateString;
   }
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
 }
 
