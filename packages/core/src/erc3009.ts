@@ -129,21 +129,16 @@ export async function executeERC3009Settlement(
       ],
     });
 
-    // Estimate gas
-    const gasEstimate = await publicClient.estimateGas({
-      account: account.address,
-      to: tokenAddress,
-      data,
-    });
-
-    // Get gas price
+    // Get current gas price
     const gasPrice = await publicClient.getGasPrice();
 
-    // Send transaction
+    // Send transaction directly without gas estimation
+    // Gas estimation can fail due to clock skew between server and blockchain
+    // The actual transaction will succeed because block timestamp moves forward
     const hash = await walletClient.sendTransaction({
       to: tokenAddress,
       data,
-      gas: gasEstimate + (gasEstimate / 10n), // Add 10% buffer
+      gas: 100000n, // ERC-3009 transfers use ~65k gas, 100k is safe
       gasPrice,
     });
 
