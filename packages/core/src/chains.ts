@@ -91,6 +91,7 @@ export const networkToChainId: Record<string, number | string> = {
   ethereum: 1,
   sepolia: 11155111,
   solana: 'solana',
+  'solana-mainnet': 'solana', // Alias for compatibility
   'solana-devnet': 'solana-devnet',
 };
 
@@ -103,6 +104,7 @@ export const chainIdToNetwork: Record<string | number, string> = {
   1: 'ethereum',
   11155111: 'sepolia',
   solana: 'solana',
+  'solana-mainnet': 'solana', // Alias
   'solana-devnet': 'solana-devnet',
 };
 

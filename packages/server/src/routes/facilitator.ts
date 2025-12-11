@@ -143,7 +143,7 @@ router.post('/settle', requireFacilitator, async (req: Request, res: Response) =
     const facilitator = createFacilitator(config);
 
     // Determine which private key to use based on network
-    const isSolanaNetwork = paymentRequirements.network === 'solana' || paymentRequirements.network === 'solana-devnet';
+    const isSolanaNetwork = paymentRequirements.network === 'solana' || paymentRequirements.network === 'solana-mainnet' || paymentRequirements.network === 'solana-devnet';
     
     let privateKey: string | undefined;
     
