@@ -72,13 +72,22 @@ export async function executeSolanaSettlement(
 ): Promise<SolanaSettlementResult> {
   const { network, signedTransaction, facilitatorPrivateKey } = params;
 
+  console.log('[SolanaSettlement] Starting settlement:', { 
+    network, 
+    txLength: signedTransaction?.length,
+    hasPrivateKey: !!facilitatorPrivateKey 
+  });
+
   const rpcUrl = getSolanaRpcUrl(network);
   if (!rpcUrl) {
+    console.error('[SolanaSettlement] No RPC URL for network:', network);
     return {
       success: false,
       errorMessage: `Unsupported Solana network: ${network}`,
     };
   }
+
+  console.log('[SolanaSettlement] Using RPC:', rpcUrl.substring(0, 50) + '...');
 
   try {
     const connection = new Connection(rpcUrl, 'confirmed');
@@ -122,35 +131,56 @@ export async function executeSolanaSettlement(
     // Send the transaction
     let signature: string;
     
+    console.log('[SolanaSettlement] Transaction type:', transaction instanceof VersionedTransaction ? 'VersionedTransaction' : 'LegacyTransaction');
+    
     if (transaction instanceof VersionedTransaction) {
       // For versioned transactions, the facilitator may need to co-sign as fee payer
       // Check if the facilitator is the fee payer (first static account key)
       const message = transaction.message;
       const staticAccountKeys = message.staticAccountKeys;
       
+      console.log('[SolanaSettlement] Static account keys:', staticAccountKeys.length);
+      console.log('[SolanaSettlement] Existing signatures:', transaction.signatures.length);
+      
       // The fee payer is always the first account in the transaction
       if (staticAccountKeys.length > 0) {
         const feePayerPubkey = staticAccountKeys[0];
+        console.log('[SolanaSettlement] Fee payer in tx:', feePayerPubkey.toBase58());
+        console.log('[SolanaSettlement] Facilitator pubkey:', facilitatorKeypair.publicKey.toBase58());
         
         // If facilitator is the fee payer, we need to sign
         if (feePayerPubkey.equals(facilitatorKeypair.publicKey)) {
+          console.log('[SolanaSettlement] Facilitator IS fee payer, adding signature...');
           // Add facilitator's signature
           transaction.sign([facilitatorKeypair]);
+          console.log('[SolanaSettlement] Signatures after signing:', transaction.signatures.length);
+        } else {
+          console.log('[SolanaSettlement] WARNING: Fee payer mismatch! Facilitator is NOT the fee payer.');
+          console.log('[SolanaSettlement] Expected:', feePayerPubkey.toBase58());
+          console.log('[SolanaSettlement] Got:', facilitatorKeypair.publicKey.toBase58());
+          // Try to sign anyway - the fee payer might be different but still needs facilitator signature
         }
       }
       
-      // Send the transaction with skipPreflight to get better error messages
+      // Send the transaction - skip preflight to avoid simulation issues
       try {
-        signature = await connection.sendTransaction(transaction, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-      } catch (e) {
-        // If simulation fails, try with skipPreflight to see if it's a preflight issue
-        console.error('Versioned transaction preflight failed:', e);
+        console.log('[SolanaSettlement] Sending versioned transaction (skipPreflight=true)...');
+        // Always skip preflight for x402 transactions to avoid timing issues
         signature = await connection.sendTransaction(transaction, {
           skipPreflight: true,
+          preflightCommitment: 'confirmed',
         });
+        console.log('[SolanaSettlement] Transaction sent! Signature:', signature);
+      } catch (e) {
+        console.error('[SolanaSettlement] Transaction send failed:', e);
+        const error = e as Error & { signature?: string; transactionMessage?: string };
+        if (error.signature) {
+          // Sometimes the transaction is sent but we get an error anyway
+          console.log('[SolanaSettlement] Error has signature:', error.signature);
+          signature = error.signature;
+        } else {
+          throw e; // Re-throw if no signature
+        }
       }
     } else {
       // For legacy transactions, we might need to add the facilitator as fee payer
@@ -181,12 +211,13 @@ export async function executeSolanaSettlement(
     // Return immediately after broadcast - don't wait for confirmation
     // This makes the response much faster (~2-3 seconds saved)
     // The transaction is already submitted to the network
+    console.log('[SolanaSettlement] SUCCESS! Returning signature:', signature);
     return {
       success: true,
       transactionHash: signature,
     };
   } catch (error) {
-    console.error('Solana settlement error:', error);
+    console.error('[SolanaSettlement] ERROR:', error);
     
     let errorMessage = 'Unknown error during Solana settlement';
     if (error instanceof SendTransactionError) {

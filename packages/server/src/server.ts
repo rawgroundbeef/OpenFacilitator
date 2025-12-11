@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { facilitatorRouter } from './routes/facilitator.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
+import { publicRouter } from './routes/public.js';
 import { resolveFacilitator } from './middleware/tenant.js';
 
 /**
@@ -66,6 +67,9 @@ export function createServer(): Express {
 
   // Admin API routes (for dashboard)
   app.use('/api/admin', adminRouter);
+
+  // Public free facilitator routes (no auth required)
+  app.use('/', publicRouter);
 
   // Multi-tenant facilitator routes
   // These are resolved by subdomain or custom domain
