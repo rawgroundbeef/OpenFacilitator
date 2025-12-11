@@ -26,12 +26,18 @@ import {
 import bs58 from 'bs58';
 
 /**
- * Solana RPC endpoints
+ * Get Solana RPC URL for a network
+ * Uses environment variables with fallback to public RPCs
  */
-const SOLANA_RPC_URLS: Record<string, string> = {
-  'solana': 'https://api.mainnet-beta.solana.com',
-  'solana-devnet': 'https://api.devnet.solana.com',
-};
+function getSolanaRpcUrl(network: string): string {
+  if (network === 'solana' || network === 'solana-mainnet') {
+    return process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+  }
+  if (network === 'solana-devnet') {
+    return process.env.SOLANA_DEVNET_RPC_URL || 'https://api.devnet.solana.com';
+  }
+  return 'https://api.mainnet-beta.solana.com';
+}
 
 /**
  * Known USDC mint addresses
@@ -66,7 +72,7 @@ export async function executeSolanaSettlement(
 ): Promise<SolanaSettlementResult> {
   const { network, signedTransaction, facilitatorPrivateKey } = params;
 
-  const rpcUrl = SOLANA_RPC_URLS[network];
+  const rpcUrl = getSolanaRpcUrl(network);
   if (!rpcUrl) {
     return {
       success: false,
@@ -172,14 +178,9 @@ export async function executeSolanaSettlement(
       });
     }
 
-    // Wait for confirmation
-    const latestBlockhash = await connection.getLatestBlockhash();
-    await connection.confirmTransaction({
-      signature,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-    });
-
+    // Return immediately after broadcast - don't wait for confirmation
+    // This makes the response much faster (~2-3 seconds saved)
+    // The transaction is already submitted to the network
     return {
       success: true,
       transactionHash: signature,
@@ -227,10 +228,7 @@ export async function getSolanaBalance(
   network: 'solana' | 'solana-devnet',
   address: string
 ): Promise<{ balance: bigint; formatted: string }> {
-  const rpcUrl = SOLANA_RPC_URLS[network];
-  if (!rpcUrl) {
-    throw new Error(`Unsupported Solana network: ${network}`);
-  }
+  const rpcUrl = getSolanaRpcUrl(network);
 
   const connection = new Connection(rpcUrl, 'confirmed');
   const publicKey = new PublicKey(address);
@@ -252,10 +250,10 @@ export async function getSolanaUSDCBalance(
   network: 'solana' | 'solana-devnet',
   address: string
 ): Promise<{ balance: bigint; formatted: string }> {
-  const rpcUrl = SOLANA_RPC_URLS[network];
+  const rpcUrl = getSolanaRpcUrl(network);
   const usdcMint = USDC_MINTS[network];
   
-  if (!rpcUrl || !usdcMint) {
+  if (!usdcMint) {
     throw new Error(`Unsupported Solana network: ${network}`);
   }
 
