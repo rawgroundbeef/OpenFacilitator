@@ -31,6 +31,19 @@ export function initializeDatabase(dbPath?: string): Database.Database {
   // Enable WAL mode for better concurrent performance
   db.pragma('journal_mode = WAL');
 
+  // Run migrations for existing databases
+  try {
+    // Add encrypted_solana_private_key column if it doesn't exist
+    const columns = db.prepare("PRAGMA table_info(facilitators)").all() as { name: string }[];
+    const hasColumn = columns.some(col => col.name === 'encrypted_solana_private_key');
+    if (!hasColumn) {
+      db.exec('ALTER TABLE facilitators ADD COLUMN encrypted_solana_private_key TEXT');
+      console.log('✅ Added encrypted_solana_private_key column to facilitators table');
+    }
+  } catch (e) {
+    // Table might not exist yet, that's fine
+  }
+
   // Create tables
   db.exec(`
     -- Facilitators table
