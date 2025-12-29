@@ -8,6 +8,7 @@ import { Navbar } from '@/components/navbar';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { SubscriptionConfirmDialog } from '@/components/subscription-confirm-dialog';
 
 const FREE_ENDPOINT = 'https://x402.openfacilitator.io';
 
@@ -76,6 +77,8 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [purchasingTier, setPurchasingTier] = useState<'basic' | 'pro' | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmTier, setConfirmTier] = useState<'basic' | 'pro' | null>(null);
 
   const { data: billingWallet } = useQuery({
     queryKey: ['billingWallet'],
@@ -118,9 +121,17 @@ export default function Home() {
     },
   });
 
-  const handlePurchase = (tier: 'basic' | 'pro') => {
-    setPurchasingTier(tier);
-    purchaseMutation.mutate(tier);
+  // Open confirmation dialog
+  const handleUpgradeClick = (tier: 'basic' | 'pro') => {
+    setConfirmTier(tier);
+    setConfirmDialogOpen(true);
+  };
+
+  // Execute purchase after confirmation
+  const handleConfirmPurchase = () => {
+    if (!confirmTier) return;
+    setPurchasingTier(confirmTier);
+    purchaseMutation.mutate(confirmTier);
   };
 
   const scrollTo = (id: string) => {
@@ -356,7 +367,7 @@ const handler = createPaymentHandler({
                 tier="basic"
                 className="block w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors text-sm"
                 isPurchasing={purchasingTier === 'basic'}
-                onPurchase={handlePurchase}
+                onPurchase={handleUpgradeClick}
               />
             </div>
 
@@ -389,7 +400,7 @@ const handler = createPaymentHandler({
                 tier="pro"
                 className="block w-full py-2.5 rounded-lg border border-border text-center font-medium hover:bg-secondary transition-colors text-sm"
                 isPurchasing={purchasingTier === 'pro'}
-                onPurchase={handlePurchase}
+                onPurchase={handleUpgradeClick}
               />
             </div>
           </div>
@@ -471,6 +482,16 @@ const handler = createPaymentHandler({
           </div>
         </div>
       </footer>
+
+      {/* Subscription Confirmation Dialog */}
+      <SubscriptionConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        tier={confirmTier}
+        balance={billingWallet?.balance ?? null}
+        isPurchasing={purchasingTier !== null}
+        onConfirm={handleConfirmPurchase}
+      />
     </div>
   );
 }

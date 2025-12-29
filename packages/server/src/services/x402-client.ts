@@ -44,6 +44,7 @@ interface X402Response {
   insufficientBalance?: boolean;
   required?: string;
   available?: string;
+  txHash?: string;
 }
 
 /**
@@ -87,15 +88,21 @@ function parse402Response(body: unknown): PaymentRequirements | null {
   return null;
 }
 
+interface SignedTransactionResult {
+  serializedTransaction: string;
+  signature: string;
+}
+
 /**
  * Create a signed Solana USDC transfer transaction
+ * Returns both the serialized transaction and the signature (tx hash)
  */
 async function createSignedTransferTransaction(
   privateKey: string,
   recipient: string,
   amount: bigint,
   network: string
-): Promise<string> {
+): Promise<SignedTransactionResult> {
   const rpcUrl = getSolanaRpcUrl(network);
   const connection = new Connection(rpcUrl, 'confirmed');
 
@@ -146,9 +153,15 @@ async function createSignedTransferTransaction(
   // Sign the transaction
   transaction.sign(keypair);
 
+  // Get the signature (tx hash) - first signature is the transaction ID
+  const signature = bs58.encode(transaction.signature!);
+
   // Serialize to base64
   const serialized = transaction.serialize();
-  return Buffer.from(serialized).toString('base64');
+  return {
+    serializedTransaction: Buffer.from(serialized).toString('base64'),
+    signature,
+  };
 }
 
 /**
@@ -255,19 +268,21 @@ export async function makeX402Payment(
 
     // Step 5: Create and sign the transfer transaction
     console.log('[x402Client] Creating signed transaction...');
-    const signedTransaction = await createSignedTransferTransaction(
+    const { serializedTransaction, signature } = await createSignedTransferTransaction(
       privateKey,
       recipient,
       requiredAmount,
       network
     );
 
+    console.log('[x402Client] Transaction signature (tx hash):', signature);
+
     // Step 6: Create x402 payment payload
     // For Solana, the payload contains the signed transaction
     const paymentPayload = {
       x402Version: 1,
       payload: {
-        transaction: signedTransaction,
+        transaction: serializedTransaction,
       },
     };
 
@@ -293,7 +308,7 @@ export async function makeX402Payment(
 
     const data = await paymentResponse.json();
     console.log('[x402Client] Payment successful:', data);
-    return { success: true, data };
+    return { success: true, data, txHash: signature };
   } catch (error) {
     console.error('[x402Client] Error:', error);
     return {

@@ -13,7 +13,7 @@ import { makeX402Payment } from '../services/x402-client.js';
 import { requireAuth } from '../middleware/auth.js';
 
 // Memeputer x402 endpoints
-const MEMEPUTER_X402_BASE_URL = process.env.MEMEPUTER_X402_BASE_URL || 'https://agents.memeputer.com';
+const MEMEPUTER_X402_BASE_URL = process.env.MEMEPUTER_X402_BASE_URL;
 
 function getMemeputerEndpoint(tier: 'basic' | 'pro'): string {
   const command = tier === 'basic' ? 'subscribe_basic' : 'subscribe_pro';
@@ -59,6 +59,12 @@ function verifyWebhookSecret(req: Request, res: Response, next: () => void): voi
  * POST /api/subscriptions/activate
  * Called by Memeputer agent after successful payment
  *
+ * This webhook is now a backup/fallback mechanism.
+ * The /purchase endpoint creates subscriptions directly with tx hash.
+ * This webhook handles cases where:
+ * - The subscription was created by /purchase (idempotent - just return success)
+ * - The /purchase endpoint failed after payment (create subscription as fallback)
+ *
  * Headers:
  *   Content-Type: application/json
  *   X-Webhook-Secret: <MEMEPUTER_WEBHOOK_SECRET>
@@ -79,6 +85,8 @@ router.post('/activate', verifyWebhookSecret, async (req: Request, res: Response
 
     const { userId, tier } = parsed.data;
 
+    console.log(`[Activate Webhook] Received for user ${userId}, tier ${tier}`);
+
     // Validate user exists
     if (!userExists(userId)) {
       res.status(404).json({
@@ -91,20 +99,40 @@ router.post('/activate', verifyWebhookSecret, async (req: Request, res: Response
     // Check for existing active subscription
     const existingSub = getActiveSubscription(userId);
 
+    // If subscription already exists and matches tier, this is likely a duplicate call
+    // (subscription was already created by /purchase). Return success without creating.
+    if (existingSub && existingSub.tier === tier) {
+      // Check if subscription was created recently (within last 5 minutes)
+      const createdAt = new Date(existingSub.created_at);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+      if (createdAt > fiveMinutesAgo) {
+        console.log(`[Activate Webhook] Subscription already exists for user ${userId} (created ${existingSub.created_at}), returning success`);
+        res.json({
+          success: true,
+          tier: existingSub.tier,
+          expires: existingSub.expires_at,
+          note: 'Subscription already active',
+        });
+        return;
+      }
+    }
+
+    // No recent subscription found - create/extend as fallback
     let subscription;
     const SUBSCRIPTION_DAYS = 30;
 
     if (existingSub) {
-      // Extend existing subscription
+      // Extend existing subscription (no tx hash from webhook)
       subscription = extendSubscription(existingSub.id, SUBSCRIPTION_DAYS, tier);
-      console.log(`Extended ${tier} subscription for user ${userId}: ${subscription?.expires_at}`);
+      console.log(`[Activate Webhook] Extended ${tier} subscription for user ${userId}: ${subscription?.expires_at}`);
     } else {
-      // Create new subscription
+      // Create new subscription (no tx hash from webhook)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + SUBSCRIPTION_DAYS);
 
       subscription = createSubscription(userId, tier, expiresAt);
-      console.log(`Created new ${tier} subscription for user ${userId}: expires ${subscription.expires_at}`);
+      console.log(`[Activate Webhook] Created new ${tier} subscription for user ${userId}: expires ${subscription.expires_at}`);
     }
 
     if (!subscription) {
@@ -188,10 +216,8 @@ const purchaseSchema = z.object({
  * This endpoint:
  * 1. Gets the user's Solana wallet
  * 2. Makes an x402 payment to Memeputer
- * 3. Returns success/failure
- *
- * The actual subscription activation happens via the /activate webhook
- * which Memeputer calls after successful payment.
+ * 3. Creates the subscription directly with the tx hash
+ * 4. Returns the subscription details
  */
 router.post('/purchase', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -206,6 +232,16 @@ router.post('/purchase', requireAuth, async (req: Request, res: Response) => {
 
     const { tier } = parsed.data;
     const userId = req.user!.id;
+
+    // Check if Memeputer URL is configured
+    if (!MEMEPUTER_X402_BASE_URL) {
+      console.error('[Purchase] MEMEPUTER_X402_BASE_URL not configured');
+      res.status(500).json({
+        success: false,
+        error: 'Subscription service not configured',
+      });
+      return;
+    }
 
     console.log(`[Purchase] User ${userId} attempting to purchase ${tier} subscription`);
 
@@ -269,14 +305,42 @@ router.post('/purchase', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    console.log(`[Purchase] Payment successful for user ${userId}, tier ${tier}`);
+    console.log(`[Purchase] Payment successful for user ${userId}, tier ${tier}, txHash: ${result.txHash}`);
 
-    // Payment was successful
-    // The subscription will be activated by Memeputer calling /activate
+    // Create subscription directly with tx hash
+    const SUBSCRIPTION_DAYS = 30;
+    const existingSub = getActiveSubscription(userId);
+    let subscription;
+
+    if (existingSub) {
+      // Extend existing subscription
+      subscription = extendSubscription(existingSub.id, SUBSCRIPTION_DAYS, tier, result.txHash);
+      console.log(`[Purchase] Extended ${tier} subscription for user ${userId}: ${subscription?.expires_at}`);
+    } else {
+      // Create new subscription
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + SUBSCRIPTION_DAYS);
+
+      subscription = createSubscription(userId, tier, expiresAt, result.txHash);
+      console.log(`[Purchase] Created new ${tier} subscription for user ${userId}: expires ${subscription.expires_at}`);
+    }
+
+    if (!subscription) {
+      // Payment succeeded but subscription creation failed - this is bad
+      console.error(`[Purchase] CRITICAL: Payment succeeded but subscription creation failed for user ${userId}`);
+      res.status(500).json({
+        success: false,
+        error: 'Subscription creation failed after payment. Please contact support.',
+        txHash: result.txHash,
+      });
+      return;
+    }
+
     res.json({
       success: true,
-      message: 'Payment successful! Your subscription is being activated.',
-      tier,
+      tier: subscription.tier,
+      expires: subscription.expires_at,
+      txHash: result.txHash,
     });
   } catch (error) {
     console.error('[Purchase] Error:', error);
