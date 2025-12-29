@@ -96,12 +96,18 @@ interface SignedTransactionResult {
 /**
  * Create a signed Solana USDC transfer transaction
  * Returns both the serialized transaction and the signature (tx hash)
+ *
+ * For x402 flow with gas-free transactions:
+ * - feePayer is the facilitator's hot wallet (pays gas fees)
+ * - payer (sender) signs to authorize the USDC transfer
+ * - facilitator will add their fee payer signature during settlement
  */
 async function createSignedTransferTransaction(
   privateKey: string,
   recipient: string,
   amount: bigint,
-  network: string
+  network: string,
+  feePayer?: string // Facilitator's fee payer address from 402 response
 ): Promise<SignedTransactionResult> {
   const rpcUrl = getSolanaRpcUrl(network);
   const connection = new Connection(rpcUrl, 'confirmed');
@@ -110,6 +116,17 @@ async function createSignedTransferTransaction(
   const keypair = Keypair.fromSecretKey(bs58.decode(privateKey));
   const senderPubkey = keypair.publicKey;
   const recipientPubkey = new PublicKey(recipient);
+
+  // Use facilitator's fee payer if provided, otherwise fall back to sender
+  const feePayerPubkey = feePayer ? new PublicKey(feePayer) : senderPubkey;
+  const isFacilitatorFeePayer = feePayer && feePayer !== senderPubkey.toBase58();
+
+  console.log('[x402Client] Creating transaction:', {
+    sender: senderPubkey.toBase58(),
+    recipient,
+    feePayer: feePayerPubkey.toBase58(),
+    isFacilitatorFeePayer,
+  });
 
   // Get USDC mint
   const usdcMint = USDC_MINTS[network];
@@ -148,19 +165,36 @@ async function createSignedTransferTransaction(
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   transaction.recentBlockhash = blockhash;
   transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = senderPubkey;
+  transaction.feePayer = feePayerPubkey;
 
   // Sign the transaction
-  transaction.sign(keypair);
+  // If facilitator is fee payer, use partialSign (facilitator will add their signature)
+  // Otherwise, fully sign
+  if (isFacilitatorFeePayer) {
+    transaction.partialSign(keypair);
+    console.log('[x402Client] Partially signed (facilitator will add fee payer signature)');
+  } else {
+    transaction.sign(keypair);
+    console.log('[x402Client] Fully signed (sender is fee payer)');
+  }
 
-  // Get the signature (tx hash) - first signature is the transaction ID
-  const signature = bs58.encode(transaction.signature!);
+  // Get the signature from the payer (not the fee payer)
+  // For x402, we don't know the final tx hash until facilitator signs
+  // But we can use the payer's signature as an identifier
+  const payerSignature = transaction.signatures.find(
+    sig => sig.publicKey.equals(senderPubkey) && sig.signature
+  );
 
-  // Serialize to base64
-  const serialized = transaction.serialize();
+  // Serialize to base64 - allow missing signatures if facilitator is fee payer
+  const serialized = transaction.serialize({
+    requireAllSignatures: !isFacilitatorFeePayer,
+    verifySignatures: false, // Don't verify since facilitator signature is missing
+  });
+
   return {
     serializedTransaction: Buffer.from(serialized).toString('base64'),
-    signature,
+    // Use payer signature as identifier - actual tx hash comes from facilitator
+    signature: payerSignature?.signature ? bs58.encode(payerSignature.signature) : 'pending',
   };
 }
 
@@ -259,12 +293,16 @@ export async function makeX402Payment(
       };
     }
 
-    // Step 4: Get recipient address
+    // Step 4: Get recipient address and fee payer
     const recipient = requirements.payTo || (requirements.extra?.payTo as string);
     if (!recipient) {
       console.error('[x402Client] No recipient address in payment requirements');
       return { success: false, error: 'No recipient address in payment requirements' };
     }
+
+    // Get fee payer from extra field (for gas-free transactions)
+    const feePayer = requirements.extra?.feePayer as string | undefined;
+    console.log('[x402Client] Fee payer from requirements:', feePayer || '(none - sender pays gas)');
 
     // Step 5: Create and sign the transfer transaction
     console.log('[x402Client] Creating signed transaction...');
@@ -272,10 +310,11 @@ export async function makeX402Payment(
       privateKey,
       recipient,
       requiredAmount,
-      network
+      network,
+      feePayer
     );
 
-    console.log('[x402Client] Transaction signature (tx hash):', signature);
+    console.log('[x402Client] Payer signature:', signature);
 
     // Step 6: Create x402 payment payload
     // For Solana, the payload contains the signed transaction
@@ -308,7 +347,20 @@ export async function makeX402Payment(
 
     const data = await paymentResponse.json();
     console.log('[x402Client] Payment successful:', data);
-    return { success: true, data, txHash: signature };
+
+    // Try to extract transaction hash from response
+    // The facilitator should return this after settlement
+    const responseData = data as Record<string, unknown>;
+    const txHashFromResponse =
+      (responseData.transactionHash as string) ||
+      (responseData.txHash as string) ||
+      (responseData.signature as string) ||
+      ((responseData.data as Record<string, unknown>)?.transactionHash as string);
+
+    const finalTxHash = txHashFromResponse || signature;
+    console.log('[x402Client] Final transaction hash:', finalTxHash);
+
+    return { success: true, data, txHash: finalTxHash };
   } catch (error) {
     console.error('[x402Client] Error:', error);
     return {
