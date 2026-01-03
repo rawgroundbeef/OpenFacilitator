@@ -293,6 +293,24 @@ class ApiClient {
     });
   }
 
+  // Favicon Management
+  async getFavicon(facilitatorId: string): Promise<{ hasFavicon: boolean; favicon: string | null }> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/favicon`);
+  }
+
+  async uploadFavicon(facilitatorId: string, faviconBase64: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/favicon`, {
+      method: 'POST',
+      body: JSON.stringify({ favicon: faviconBase64 }),
+    });
+  }
+
+  async removeFavicon(facilitatorId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/favicon`, {
+      method: 'DELETE',
+    });
+  }
+
   // Billing Wallet (user's subscription wallet)
   async getBillingWallet(): Promise<BillingWallet> {
     return this.request('/api/admin/wallet');

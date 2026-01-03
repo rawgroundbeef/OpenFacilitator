@@ -47,6 +47,13 @@ export function initializeDatabase(dbPath?: string): Database.Database {
       db.exec("ALTER TABLE facilitators ADD COLUMN additional_domains TEXT DEFAULT '[]'");
       console.log('✅ Added additional_domains column to facilitators table');
     }
+    
+    // Add favicon column if it doesn't exist (stores base64-encoded image data)
+    const hasFaviconColumn = columns.some(col => col.name === 'favicon');
+    if (!hasFaviconColumn) {
+      db.exec("ALTER TABLE facilitators ADD COLUMN favicon TEXT");
+      console.log('✅ Added favicon column to facilitators table');
+    }
   } catch (e) {
     // Table might not exist yet, that's fine
   }
@@ -98,6 +105,7 @@ export function initializeDatabase(dbPath?: string): Database.Database {
       supported_tokens TEXT NOT NULL DEFAULT '[]',
       encrypted_private_key TEXT,
       encrypted_solana_private_key TEXT,
+      favicon TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );

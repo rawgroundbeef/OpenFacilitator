@@ -19,6 +19,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'OpenFacilitator - x402 Payment Facilitators',
   description: 'Deploy your own branded x402 payment facilitator in minutes',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

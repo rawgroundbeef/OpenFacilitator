@@ -1123,5 +1123,106 @@ router.delete('/subscriptions/clear', requireAuth, (req: Request, res: Response)
   }
 });
 
+/**
+ * POST /api/admin/facilitators/:id/favicon - Upload favicon
+ * Expects base64-encoded image data in request body
+ */
+router.post('/facilitators/:id/favicon', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { favicon } = req.body;
+
+    if (!favicon) {
+      res.status(400).json({ error: 'No favicon data provided' });
+      return;
+    }
+
+    // Validate it's a valid base64 data URL or raw base64
+    const isDataUrl = favicon.startsWith('data:image/');
+    const isBase64 = /^[A-Za-z0-9+/=]+$/.test(favicon.replace(/^data:image\/[a-z]+;base64,/, ''));
+    
+    if (!isDataUrl && !isBase64) {
+      res.status(400).json({ error: 'Invalid favicon format. Expected base64-encoded image.' });
+      return;
+    }
+
+    // Check size (max 100KB for base64)
+    const base64Data = favicon.replace(/^data:image\/[a-z]+;base64,/, '');
+    const sizeInBytes = (base64Data.length * 3) / 4;
+    if (sizeInBytes > 100 * 1024) {
+      res.status(400).json({ error: 'Favicon too large. Maximum size is 100KB.' });
+      return;
+    }
+
+    const facilitator = getFacilitatorById(id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    // Update facilitator with favicon
+    const updated = updateFacilitator(id, { favicon });
+    if (!updated) {
+      res.status(500).json({ error: 'Failed to update favicon' });
+      return;
+    }
+
+    res.json({ success: true, message: 'Favicon uploaded successfully' });
+  } catch (error) {
+    console.error('Upload favicon error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/admin/facilitators/:id/favicon - Remove favicon
+ */
+router.delete('/facilitators/:id/favicon', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const facilitator = getFacilitatorById(id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    // Clear favicon
+    const updated = updateFacilitator(id, { favicon: null });
+    if (!updated) {
+      res.status(500).json({ error: 'Failed to remove favicon' });
+      return;
+    }
+
+    res.json({ success: true, message: 'Favicon removed' });
+  } catch (error) {
+    console.error('Remove favicon error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/facilitators/:id/favicon - Get facilitator's favicon
+ */
+router.get('/facilitators/:id/favicon', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const facilitator = getFacilitatorById(id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    res.json({
+      hasFavicon: !!facilitator.favicon,
+      favicon: facilitator.favicon || null,
+    });
+  } catch (error) {
+    console.error('Get favicon error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export { router as adminRouter };
 

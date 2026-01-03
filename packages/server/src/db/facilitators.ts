@@ -114,6 +114,7 @@ export function updateFacilitator(
     supported_tokens: string;
     encrypted_private_key: string;
     encrypted_solana_private_key: string;
+    favicon: string | null;
   }>
 ): FacilitatorRecord | null {
   const db = getDatabase();
@@ -149,6 +150,10 @@ export function updateFacilitator(
   if (updates.encrypted_solana_private_key !== undefined) {
     fields.push('encrypted_solana_private_key = ?');
     values.push(updates.encrypted_solana_private_key);
+  }
+  if (updates.favicon !== undefined) {
+    fields.push('favicon = ?');
+    values.push(updates.favicon);
   }
 
   if (fields.length === 0) {

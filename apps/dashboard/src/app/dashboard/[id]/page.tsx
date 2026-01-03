@@ -39,6 +39,7 @@ import { Navbar } from '@/components/navbar';
 import { NetworksSection, useNetworkStats } from '@/components/networks-section';
 import { TransactionsTable } from '@/components/transactions-table';
 import { SettlementActivityChart } from '@/components/settlement-activity-chart';
+import { FaviconSection } from '@/components/favicon-section';
 
 type Tab = 'transactions' | 'settings';
 
@@ -558,6 +559,9 @@ export default function FacilitatorDetailPage() {
 
             {/* Networks Section (with grid wallet cards) */}
             <NetworksSection facilitatorId={id} />
+
+            {/* Favicon */}
+            <FaviconSection facilitatorId={id} facilitatorUrl={facilitator.url} />
 
             {/* API Endpoints */}
             <Card>

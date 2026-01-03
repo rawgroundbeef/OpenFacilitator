@@ -1,7 +1,6 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import type { Facilitator } from '@/lib/api';
 
@@ -66,40 +65,62 @@ export function FacilitatorCard({ facilitator, stats, onManageClick }: Facilitat
   const networksConfigured = stats?.networksConfigured ?? facilitator.supportedChains.length;
   const totalSettled = stats?.totalSettled ?? 0;
 
+  const handleCardClick = () => {
+    onManageClick?.();
+  };
+
+  const handleExternalLinkClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click when clicking external link
+  };
+
   return (
-    <div className="border border-border rounded-lg p-5 hover:border-muted-foreground/50 transition-colors bg-card">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">{domain}</h3>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 truncate"
-          >
-            {url}
-            <ExternalLink className="w-3 h-3 shrink-0" />
-          </a>
+    <div 
+      onClick={handleCardClick}
+      className="
+        border border-border rounded-lg p-5 bg-card
+        flex flex-col h-full
+        cursor-pointer
+        transition-all duration-150
+        hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:scale-[1.02]
+        active:scale-[0.98]
+      "
+    >
+      {/* Content - grows to fill space */}
+      <div className="flex-1">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate">{domain}</h3>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleExternalLinkClick}
+              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 truncate"
+            >
+              {url}
+              <ExternalLink className="w-3 h-3 shrink-0" />
+            </a>
+          </div>
+          <StatusBadge status={status} />
         </div>
-        <StatusBadge status={status} />
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span>{networksConfigured} chain{networksConfigured !== 1 ? 's' : ''}</span>
+          <span>·</span>
+          <span>${formatNumber(totalSettled)} settled</span>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-        <span>{networksConfigured} chain{networksConfigured !== 1 ? 's' : ''}</span>
-        <span>·</span>
-        <span>${formatNumber(totalSettled)} settled</span>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-border">
+      {/* Footer - pinned to bottom */}
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
         <span className="text-xs text-muted-foreground">
           Created {formatDate(facilitator.createdAt)}
         </span>
-        <Button variant="outline" size="sm" onClick={onManageClick}>
-          Manage
-        </Button>
+        <span className="text-xs font-medium text-primary">
+          Manage →
+        </span>
       </div>
     </div>
   );

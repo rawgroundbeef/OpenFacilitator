@@ -12,6 +12,7 @@ export interface FacilitatorRecord {
   supported_tokens: string; // JSON string
   encrypted_private_key: string | null; // EVM (Ethereum/Base) private key
   encrypted_solana_private_key: string | null; // Solana private key
+  favicon: string | null; // Base64-encoded favicon image
   created_at: string;
   updated_at: string;
 }

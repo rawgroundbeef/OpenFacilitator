@@ -55,6 +55,39 @@ function isSolanaNetwork(network: string): boolean {
 }
 
 /**
+ * GET /favicon.ico - Serve facilitator's custom favicon (or default)
+ */
+router.get('/favicon.ico', requireFacilitator, (req: Request, res: Response) => {
+  const record = req.facilitator!;
+
+  if (record.favicon) {
+    // Decode base64 favicon and serve it
+    const isDataUrl = record.favicon.startsWith('data:');
+    let mimeType = 'image/x-icon';
+    let base64Data = record.favicon;
+
+    if (isDataUrl) {
+      // Extract mime type and data from data URL
+      const match = record.favicon.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        base64Data = match[2];
+      }
+    }
+
+    const buffer = Buffer.from(base64Data, 'base64');
+    res.set('Content-Type', mimeType);
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+    res.send(buffer);
+    return;
+  }
+
+  // No custom favicon - redirect to default or serve a default
+  // Serve the OpenFacilitator default favicon
+  res.redirect('https://openfacilitator.io/favicon.ico');
+});
+
+/**
  * GET /supported - Get supported payment networks and tokens
  */
 router.get('/supported', requireFacilitator, (req: Request, res: Response) => {
