@@ -1,8 +1,24 @@
-# OpenFacilitator
+<p align="center">
+  <img src=".github/banner.png" alt="OpenFacilitator" width="100%" />
+</p>
 
-> Deploy your own branded x402 payment facilitator in minutes.
+<p align="center">
+  <strong>Deploy your own branded x402 payment facilitator in minutes.</strong>
+</p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" /></a>
+  <a href="https://github.com/rawgroundbeef/openfacilitator"><img src="https://img.shields.io/github/stars/rawgroundbeef/openfacilitator?style=social" alt="GitHub stars" /></a>
+</p>
+
+<p align="center">
+  <a href="https://openfacilitator.io">Website</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="https://openfacilitator.io/docs">Documentation</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
+
+---
 
 OpenFacilitator is an open source platform that lets anyone deploy their own x402 payment facilitator. Self-host for free or use our managed service for instant setup.
 
