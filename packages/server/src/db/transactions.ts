@@ -150,3 +150,107 @@ export function getTransactionStats(facilitatorId: string): {
   return { total, verified, settled, failed, totalAmountSettled };
 }
 
+/**
+ * Get global transaction statistics across all facilitators
+ */
+export function getGlobalStats(): {
+  global: {
+    totalTransactionsAllTime: number;
+    totalTransactions24h: number;
+    volumeUsdAllTime: string;
+    volumeUsd24h: string;
+    uniqueWallets: number;
+  };
+  facilitators: Array<{
+    id: string;
+    name: string;
+    subdomain: string;
+    transactionCount: number;
+    volumeUsd: string;
+    uniqueWallets: number;
+  }>;
+} {
+  const db = getDatabase();
+
+  // Total settled transactions all time
+  const totalAllTime = db
+    .prepare(
+      "SELECT COUNT(*) as count FROM transactions WHERE type = 'settle' AND status = 'success'"
+    )
+    .get() as { count: number };
+
+  // Total settled transactions 24h
+  const total24h = db
+    .prepare(
+      "SELECT COUNT(*) as count FROM transactions WHERE type = 'settle' AND status = 'success' AND created_at > datetime('now', '-24 hours')"
+    )
+    .get() as { count: number };
+
+  // Volume all time (sum of settled amounts in atomic units)
+  const volumeAllTime = db
+    .prepare(
+      "SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) as total FROM transactions WHERE type = 'settle' AND status = 'success'"
+    )
+    .get() as { total: number };
+
+  // Volume 24h
+  const volume24h = db
+    .prepare(
+      "SELECT COALESCE(SUM(CAST(amount AS INTEGER)), 0) as total FROM transactions WHERE type = 'settle' AND status = 'success' AND created_at > datetime('now', '-24 hours')"
+    )
+    .get() as { total: number };
+
+  // Unique wallets (distinct payers)
+  const uniqueWallets = db
+    .prepare(
+      "SELECT COUNT(DISTINCT from_address) as count FROM transactions WHERE type = 'settle' AND status = 'success'"
+    )
+    .get() as { count: number };
+
+  // Per-facilitator breakdown
+  const perFacilitator = db
+    .prepare(
+      `
+    SELECT
+      f.id,
+      f.name,
+      f.subdomain,
+      COUNT(t.id) as transaction_count,
+      COALESCE(SUM(CAST(t.amount AS INTEGER)), 0) as volume_atomic,
+      COUNT(DISTINCT t.from_address) as unique_wallets
+    FROM facilitators f
+    LEFT JOIN transactions t ON f.id = t.facilitator_id
+      AND t.type = 'settle'
+      AND t.status = 'success'
+    GROUP BY f.id, f.name, f.subdomain
+    ORDER BY volume_atomic DESC
+  `
+    )
+    .all() as Array<{
+    id: string;
+    name: string;
+    subdomain: string;
+    transaction_count: number;
+    volume_atomic: number;
+    unique_wallets: number;
+  }>;
+
+  return {
+    global: {
+      totalTransactionsAllTime: totalAllTime.count,
+      totalTransactions24h: total24h.count,
+      volumeUsdAllTime: (volumeAllTime.total / 1_000_000).toFixed(2),
+      volumeUsd24h: (volume24h.total / 1_000_000).toFixed(2),
+      uniqueWallets: uniqueWallets.count,
+    },
+    facilitators: perFacilitator.map((f) => ({
+      id: f.id,
+      name: f.name,
+      subdomain: f.subdomain,
+      transactionCount: f.transaction_count,
+      volumeUsd: (f.volume_atomic / 1_000_000).toFixed(2),
+      uniqueWallets: f.unique_wallets,
+    })),
+  };
+}
+

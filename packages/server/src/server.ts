@@ -6,6 +6,7 @@ import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { publicRouter } from './routes/public.js';
 import { subscriptionsRouter } from './routes/subscriptions.js';
+import { statsRouter } from './routes/stats.js';
 import { resolveFacilitator } from './middleware/tenant.js';
 
 /**
@@ -71,6 +72,9 @@ export function createServer(): Express {
 
   // Subscription routes (for Memeputer agent integration)
   app.use('/api/subscriptions', subscriptionsRouter);
+
+  // Stats API (x402 protected)
+  app.use('/', statsRouter);
 
   // Public free facilitator routes (no auth required)
   app.use('/', publicRouter);
