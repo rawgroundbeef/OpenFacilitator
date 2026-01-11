@@ -88,10 +88,11 @@ interface PaymentLinkWebhookContext {
     payerAddress: string;
     transactionHash: string;
   };
+  metadata?: Record<string, string>;
 }
 
 async function deliverPaymentLinkWebhook(ctx: PaymentLinkWebhookContext): Promise<void> {
-  const { link, facilitator, payment } = ctx;
+  const { link, facilitator, payment, metadata } = ctx;
 
   let webhookUrl: string | null = null;
   let webhookSecret: string | null = null;
@@ -132,7 +133,7 @@ async function deliverPaymentLinkWebhook(ctx: PaymentLinkWebhookContext): Promis
   }
 
   // Build webhook payload
-  const webhookPayload: PaymentLinkWebhookPayload & { action?: { type: string; status: string; result?: Record<string, unknown> } } = {
+  const webhookPayload: PaymentLinkWebhookPayload & { action?: { type: string; status: string; result?: Record<string, unknown> }; metadata?: Record<string, string> } = {
     event: 'payment_link.payment',
     paymentLinkId: link.id,
     paymentLinkName: link.name,
@@ -145,6 +146,7 @@ async function deliverPaymentLinkWebhook(ctx: PaymentLinkWebhookContext): Promis
       network: link.network,
       transactionHash: payment.transactionHash,
     },
+    metadata,
   };
 
   // Include action result in payload
@@ -1110,6 +1112,11 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
     const SUCCESS_REDIRECT = ${link.success_redirect_url ? `'${link.success_redirect_url}'` : 'null'};
     const IS_SOLANA = NETWORK === 'solana' || NETWORK === 'solana-devnet' || NETWORK.startsWith('solana:');
 
+    // Capture URL params for metadata (e.g., pendingId for facilitator creation)
+    const urlParams = new URLSearchParams(window.location.search);
+    const METADATA = {};
+    if (urlParams.get('pendingId')) METADATA.pendingId = urlParams.get('pendingId');
+
     function showStatus(message, type) {
       const el = document.getElementById('status');
       el.textContent = message;
@@ -1285,7 +1292,8 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               payerAddress: userPublicKey,
-              transactionHash: settleResult.transactionHash
+              transactionHash: settleResult.transactionHash,
+              metadata: Object.keys(METADATA).length > 0 ? METADATA : undefined
             })
           });
 
@@ -1491,7 +1499,8 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               payerAddress: userAddress,
-              transactionHash: settleResult.transactionHash
+              transactionHash: settleResult.transactionHash,
+              metadata: Object.keys(METADATA).length > 0 ? METADATA : undefined
             })
           });
 
@@ -1620,7 +1629,7 @@ router.post('/pay/:linkId/complete', async (req: Request, res: Response) => {
     return;
   }
 
-  const { payerAddress, transactionHash, errorMessage } = req.body;
+  const { payerAddress, transactionHash, errorMessage, metadata } = req.body;
 
   if (!payerAddress) {
     res.status(400).json({ error: 'Payer address is required' });
@@ -1660,6 +1669,7 @@ router.post('/pay/:linkId/complete', async (req: Request, res: Response) => {
         payerAddress,
         transactionHash,
       },
+      metadata,
     });
   }
 

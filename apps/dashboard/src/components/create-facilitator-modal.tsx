@@ -38,12 +38,14 @@ export function CreateFacilitatorModal({
 
   const pendingMutation = useMutation({
     mutationFn: async (data: { name: string; customDomain: string }) => {
-      // Save pending facilitator request
-      await api.createPendingFacilitator(data);
+      // Save pending facilitator request and get the ID
+      const pending = await api.createPendingFacilitator(data);
+      return pending;
     },
-    onSuccess: () => {
-      // Open payment link - webhook will create the facilitator after payment
-      window.open(SUBSCRIPTION_PAYMENT_URL, '_blank');
+    onSuccess: (pending) => {
+      // Open payment link with pendingId - webhook will create the facilitator after payment
+      const paymentUrl = `${SUBSCRIPTION_PAYMENT_URL}?pendingId=${pending.id}`;
+      window.open(paymentUrl, '_blank');
 
       toast({
         title: 'Complete payment to create facilitator',

@@ -62,6 +62,15 @@ export function getPendingFacilitatorByUserId(userId: string): PendingFacilitato
 }
 
 /**
+ * Get pending facilitator by ID
+ */
+export function getPendingFacilitatorById(id: string): PendingFacilitator | null {
+  const db = getDatabase();
+  const stmt = db.prepare('SELECT * FROM pending_facilitators WHERE id = ?');
+  return stmt.get(id) as PendingFacilitator | null;
+}
+
+/**
  * Delete a pending facilitator (after it's been created)
  */
 export function deletePendingFacilitator(id: string): boolean {

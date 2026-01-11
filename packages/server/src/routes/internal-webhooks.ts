@@ -20,6 +20,7 @@ import { getDatabase } from '../db/index.js';
 import { createFacilitator } from '../db/facilitators.js';
 import {
   getPendingFacilitatorByUserId,
+  getPendingFacilitatorById,
   deletePendingFacilitator,
 } from '../db/pending-facilitators.js';
 import { defaultTokens } from '@openfacilitator/core';
@@ -29,8 +30,9 @@ const router: RouterType = Router();
 
 /**
  * Create a facilitator from a pending request
+ * Can look up by pendingId (from metadata) or by userId
  */
-async function createFacilitatorFromPending(userId: string): Promise<{
+async function createFacilitatorFromPending(options: { pendingId?: string; userId?: string }): Promise<{
   created: boolean;
   facilitator?: {
     id: string;
@@ -40,7 +42,11 @@ async function createFacilitatorFromPending(userId: string): Promise<{
   };
   error?: string;
 }> {
-  const pending = getPendingFacilitatorByUserId(userId);
+  // Try to find pending facilitator by ID first, then by user ID
+  let pending = options.pendingId ? getPendingFacilitatorById(options.pendingId) : null;
+  if (!pending && options.userId) {
+    pending = getPendingFacilitatorByUserId(options.userId);
+  }
   if (!pending) {
     return { created: false, error: 'No pending facilitator found' };
   }
@@ -54,7 +60,7 @@ async function createFacilitatorFromPending(userId: string): Promise<{
       name: pending.name,
       subdomain: pending.subdomain,
       custom_domain: pending.custom_domain,
-      owner_address: userId,
+      owner_address: pending.user_id,
       supported_chains: JSON.stringify(chains),
       supported_tokens: JSON.stringify(tokens),
     });
@@ -78,7 +84,7 @@ async function createFacilitatorFromPending(userId: string): Promise<{
     // Delete the pending facilitator record
     deletePendingFacilitator(pending.id);
 
-    console.log(`[Subscription Webhook] Created facilitator ${facilitator.id} for user ${userId}`);
+    console.log(`[Subscription Webhook] Created facilitator ${facilitator.id} for user ${pending.user_id}`);
 
     return {
       created: true,
@@ -151,7 +157,7 @@ router.post('/subscription', async (req: Request, res: Response) => {
   }
 
   // Parse webhook payload
-  const { event, payment } = req.body;
+  const { event, payment, metadata } = req.body;
 
   if (event !== 'payment_link.payment') {
     // Not a payment event, ignore
@@ -165,32 +171,44 @@ router.post('/subscription', async (req: Request, res: Response) => {
   }
 
   const { payerAddress, transactionHash, amount } = payment;
+  const pendingId = metadata?.pendingId;
 
-  console.log(`[Subscription Webhook] Processing payment from ${payerAddress}`);
+  console.log(`[Subscription Webhook] Processing payment from ${payerAddress}${pendingId ? ` (pendingId: ${pendingId})` : ''}`);
 
-  // Look up user by billing wallet address
+  // Look up user - first try by pendingId, then by billing wallet
   let userId: string | null = null;
 
-  // Try exact match first
-  const userWallet = getUserWalletByAddress(payerAddress);
-  if (userWallet) {
-    userId = userWallet.user_id;
-  } else {
-    // Try case-insensitive search for EVM addresses
-    const db = getDatabase();
-    const stmt = db.prepare('SELECT user_id FROM user_wallets WHERE LOWER(wallet_address) = LOWER(?)');
-    const wallet = stmt.get(payerAddress) as { user_id: string } | undefined;
-    if (wallet) {
-      userId = wallet.user_id;
+  // If we have a pendingId, get the user from the pending facilitator
+  if (pendingId) {
+    const pending = getPendingFacilitatorById(pendingId);
+    if (pending) {
+      userId = pending.user_id;
+      console.log(`[Subscription Webhook] Found user ${userId} from pendingId ${pendingId}`);
+    }
+  }
+
+  // Fall back to billing wallet lookup
+  if (!userId) {
+    const userWallet = getUserWalletByAddress(payerAddress);
+    if (userWallet) {
+      userId = userWallet.user_id;
+    } else {
+      // Try case-insensitive search for EVM addresses
+      const db = getDatabase();
+      const stmt = db.prepare('SELECT user_id FROM user_wallets WHERE LOWER(wallet_address) = LOWER(?)');
+      const wallet = stmt.get(payerAddress) as { user_id: string } | undefined;
+      if (wallet) {
+        userId = wallet.user_id;
+      }
     }
   }
 
   if (!userId) {
-    console.warn(`[Subscription Webhook] No user found for wallet ${payerAddress}`);
+    console.warn(`[Subscription Webhook] No user found for wallet ${payerAddress} or pendingId ${pendingId}`);
     res.status(200).json({
       success: false,
       error: 'User not found',
-      message: `No user found with billing wallet ${payerAddress}. User must pay from their OpenFacilitator billing wallet.`,
+      message: `No user found. Please ensure you're logged in and try again.`,
     });
     return;
   }
@@ -213,7 +231,7 @@ router.post('/subscription', async (req: Request, res: Response) => {
       console.log(`[Subscription Webhook] Extended subscription for user ${userId}, expires ${extended.expires_at}`);
 
       // Also create pending facilitator if one exists
-      const facilitatorResult = await createFacilitatorFromPending(userId);
+      const facilitatorResult = await createFacilitatorFromPending({ pendingId, userId });
 
       res.json({
         success: true,
@@ -242,7 +260,7 @@ router.post('/subscription', async (req: Request, res: Response) => {
     console.log(`[Subscription Webhook] Created subscription for user ${userId}, expires ${subscription.expires_at}`);
 
     // Also create pending facilitator if one exists
-    const facilitatorResult = await createFacilitatorFromPending(userId);
+    const facilitatorResult = await createFacilitatorFromPending({ pendingId, userId });
 
     res.json({
       success: true,
