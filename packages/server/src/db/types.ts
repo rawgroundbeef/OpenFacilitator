@@ -98,3 +98,38 @@ export interface MultiSettleSettlementRecord {
   created_at: string;
 }
 
+/**
+ * Payment link database record
+ * Shareable payment URLs (like Stripe Payment Links)
+ */
+export interface PaymentLinkRecord {
+  id: string;
+  facilitator_id: string;
+  name: string;
+  description: string | null;
+  amount: string;              // Atomic units (e.g., "1000000" for $1 USDC)
+  asset: string;               // Token contract address
+  network: string;             // e.g., 'base', 'base-sepolia', 'solana'
+  success_redirect_url: string | null;  // Optional redirect after payment
+  webhook_url: string | null;           // Optional per-link webhook
+  webhook_secret: string | null;
+  active: number;              // 0 = inactive, 1 = active
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Payment link payment database record
+ * Tracks individual payments made via a payment link
+ */
+export interface PaymentLinkPaymentRecord {
+  id: string;
+  payment_link_id: string;
+  payer_address: string;
+  amount: string;
+  transaction_hash: string | null;
+  status: 'pending' | 'success' | 'failed';
+  error_message: string | null;
+  created_at: string;
+}
+

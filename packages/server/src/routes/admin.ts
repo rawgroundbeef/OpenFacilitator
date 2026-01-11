@@ -8,6 +8,16 @@ import {
   deleteFacilitator,
 } from '../db/facilitators.js';
 import { getTransactionsByFacilitator, getTransactionStats, getDailyStats } from '../db/transactions.js';
+import {
+  createPaymentLink,
+  getPaymentLinkById,
+  getPaymentLinksByFacilitator,
+  updatePaymentLink,
+  deletePaymentLink,
+  getPaymentLinkStats,
+  getPaymentLinkPayments,
+  getFacilitatorPaymentLinksStats,
+} from '../db/payment-links.js';
 import { getDatabase } from '../db/index.js';
 import { 
   defaultTokens, 
@@ -1462,6 +1472,292 @@ router.post('/facilitators/:id/webhook/test', requireAuth, async (req: Request, 
     }
   } catch (error) {
     console.error('Test webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============= PAYMENT LINKS ENDPOINTS =============
+
+const createPaymentLinkSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  amount: z.string().min(1), // Atomic units
+  asset: z.string().min(1),  // Token address
+  network: z.string().min(1), // e.g., 'base', 'base-sepolia', 'solana'
+  successRedirectUrl: z.string().url().max(2048).optional(),
+  webhookUrl: z.string().url().max(2048).optional(),
+});
+
+const updatePaymentLinkSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional().nullable(),
+  amount: z.string().min(1).optional(),
+  asset: z.string().min(1).optional(),
+  network: z.string().min(1).optional(),
+  successRedirectUrl: z.string().url().max(2048).optional().nullable(),
+  webhookUrl: z.string().url().max(2048).optional().nullable(),
+  active: z.boolean().optional(),
+});
+
+// Helper to build payment link URL based on environment
+function getPaymentLinkUrl(subdomain: string, linkId: string): string {
+  if (process.env.NODE_ENV === 'development') {
+    return `http://localhost:5002/pay/${linkId}`;
+  }
+  return `https://${subdomain}.openfacilitator.io/pay/${linkId}`;
+}
+
+/**
+ * GET /api/admin/facilitators/:id/payment-links - List payment links
+ */
+router.get('/facilitators/:id/payment-links', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    const links = getPaymentLinksByFacilitator(req.params.id);
+    const aggregateStats = getFacilitatorPaymentLinksStats(req.params.id);
+
+    // Get stats for each link
+    const linksWithStats = links.map((link) => {
+      const stats = getPaymentLinkStats(link.id);
+      return {
+        id: link.id,
+        name: link.name,
+        description: link.description,
+        amount: link.amount,
+        asset: link.asset,
+        network: link.network,
+        successRedirectUrl: link.success_redirect_url,
+        webhookUrl: link.webhook_url,
+        active: link.active === 1,
+        url: getPaymentLinkUrl(facilitator.subdomain, link.id),
+        stats: {
+          totalPayments: stats.totalPayments,
+          successfulPayments: stats.successfulPayments,
+          totalAmountCollected: stats.totalAmountCollected,
+        },
+        createdAt: formatSqliteDate(link.created_at),
+        updatedAt: formatSqliteDate(link.updated_at),
+      };
+    });
+
+    res.json({
+      links: linksWithStats,
+      stats: aggregateStats,
+    });
+  } catch (error) {
+    console.error('List payment links error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/admin/facilitators/:id/payment-links - Create payment link
+ */
+router.post('/facilitators/:id/payment-links', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const parsed = createPaymentLinkSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: 'Invalid request',
+        details: parsed.error.issues,
+      });
+      return;
+    }
+
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    // Generate webhook secret if webhook URL provided
+    let webhookSecret: string | undefined;
+    if (parsed.data.webhookUrl) {
+      webhookSecret = generateWebhookSecret();
+    }
+
+    const link = createPaymentLink({
+      facilitator_id: req.params.id,
+      name: parsed.data.name,
+      description: parsed.data.description,
+      amount: parsed.data.amount,
+      asset: parsed.data.asset,
+      network: parsed.data.network,
+      success_redirect_url: parsed.data.successRedirectUrl,
+      webhook_url: parsed.data.webhookUrl,
+      webhook_secret: webhookSecret,
+    });
+
+    res.status(201).json({
+      id: link.id,
+      name: link.name,
+      description: link.description,
+      amount: link.amount,
+      asset: link.asset,
+      network: link.network,
+      successRedirectUrl: link.success_redirect_url,
+      webhookUrl: link.webhook_url,
+      active: link.active === 1,
+      url: getPaymentLinkUrl(facilitator.subdomain, link.id),
+      createdAt: formatSqliteDate(link.created_at),
+    });
+  } catch (error) {
+    console.error('Create payment link error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/admin/facilitators/:id/payment-links/:linkId - Get payment link details
+ */
+router.get('/facilitators/:id/payment-links/:linkId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    const link = getPaymentLinkById(req.params.linkId);
+    if (!link || link.facilitator_id !== req.params.id) {
+      res.status(404).json({ error: 'Payment link not found' });
+      return;
+    }
+
+    const stats = getPaymentLinkStats(link.id);
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+    const payments = getPaymentLinkPayments(link.id, limit, offset);
+
+    res.json({
+      id: link.id,
+      name: link.name,
+      description: link.description,
+      amount: link.amount,
+      asset: link.asset,
+      network: link.network,
+      successRedirectUrl: link.success_redirect_url,
+      webhookUrl: link.webhook_url,
+      active: link.active === 1,
+      url: getPaymentLinkUrl(facilitator.subdomain, link.id),
+      stats,
+      payments: payments.map((p) => ({
+        id: p.id,
+        payerAddress: p.payer_address,
+        amount: p.amount,
+        transactionHash: p.transaction_hash,
+        status: p.status,
+        errorMessage: p.error_message,
+        createdAt: formatSqliteDate(p.created_at),
+      })),
+      createdAt: formatSqliteDate(link.created_at),
+      updatedAt: formatSqliteDate(link.updated_at),
+    });
+  } catch (error) {
+    console.error('Get payment link error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/admin/facilitators/:id/payment-links/:linkId - Update payment link
+ */
+router.patch('/facilitators/:id/payment-links/:linkId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const parsed = updatePaymentLinkSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: 'Invalid request',
+        details: parsed.error.issues,
+      });
+      return;
+    }
+
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    const existingLink = getPaymentLinkById(req.params.linkId);
+    if (!existingLink || existingLink.facilitator_id !== req.params.id) {
+      res.status(404).json({ error: 'Payment link not found' });
+      return;
+    }
+
+    const updates: Parameters<typeof updatePaymentLink>[1] = {};
+    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+    if (parsed.data.description !== undefined) updates.description = parsed.data.description;
+    if (parsed.data.amount !== undefined) updates.amount = parsed.data.amount;
+    if (parsed.data.asset !== undefined) updates.asset = parsed.data.asset;
+    if (parsed.data.network !== undefined) updates.network = parsed.data.network;
+    if (parsed.data.successRedirectUrl !== undefined) updates.success_redirect_url = parsed.data.successRedirectUrl;
+    if (parsed.data.webhookUrl !== undefined) {
+      updates.webhook_url = parsed.data.webhookUrl;
+      // Generate new secret if setting webhook for the first time
+      if (parsed.data.webhookUrl && !existingLink.webhook_secret) {
+        updates.webhook_secret = generateWebhookSecret();
+      }
+    }
+    if (parsed.data.active !== undefined) updates.active = parsed.data.active ? 1 : 0;
+
+    const link = updatePaymentLink(req.params.linkId, updates);
+    if (!link) {
+      res.status(500).json({ error: 'Failed to update payment link' });
+      return;
+    }
+
+    res.json({
+      id: link.id,
+      name: link.name,
+      description: link.description,
+      amount: link.amount,
+      asset: link.asset,
+      network: link.network,
+      successRedirectUrl: link.success_redirect_url,
+      webhookUrl: link.webhook_url,
+      active: link.active === 1,
+      url: getPaymentLinkUrl(facilitator.subdomain, link.id),
+      createdAt: formatSqliteDate(link.created_at),
+      updatedAt: formatSqliteDate(link.updated_at),
+    });
+  } catch (error) {
+    console.error('Update payment link error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/admin/facilitators/:id/payment-links/:linkId - Delete payment link
+ */
+router.delete('/facilitators/:id/payment-links/:linkId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    const link = getPaymentLinkById(req.params.linkId);
+    if (!link || link.facilitator_id !== req.params.id) {
+      res.status(404).json({ error: 'Payment link not found' });
+      return;
+    }
+
+    const deleted = deletePaymentLink(req.params.linkId);
+    if (!deleted) {
+      res.status(500).json({ error: 'Failed to delete payment link' });
+      return;
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Delete payment link error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

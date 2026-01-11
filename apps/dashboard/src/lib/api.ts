@@ -127,6 +127,60 @@ export interface PurchaseResult {
   txHash?: string;
 }
 
+export interface PaymentLink {
+  id: string;
+  name: string;
+  description: string | null;
+  amount: string;
+  asset: string;
+  network: string;
+  successRedirectUrl: string | null;
+  webhookUrl: string | null;
+  active: boolean;
+  url: string;
+  stats?: {
+    totalPayments: number;
+    successfulPayments: number;
+    totalAmountCollected: string;
+  };
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PaymentLinkPayment {
+  id: string;
+  payerAddress: string;
+  amount: string;
+  transactionHash: string | null;
+  status: 'pending' | 'success' | 'failed';
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface CreatePaymentLinkRequest {
+  name: string;
+  description?: string;
+  amount: string;
+  asset: string;
+  network: string;
+  successRedirectUrl?: string;
+  webhookUrl?: string;
+}
+
+export interface PaymentLinksResponse {
+  links: PaymentLink[];
+  stats: {
+    totalLinks: number;
+    activeLinks: number;
+    totalPayments: number;
+    totalAmountCollected: string;
+  };
+}
+
+export interface PaymentLinkDetailResponse extends PaymentLink {
+  payments: PaymentLinkPayment[];
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -420,6 +474,48 @@ class ApiClient {
     }
 
     return data;
+  }
+
+  // Payment Links
+  async getPaymentLinks(facilitatorId: string): Promise<PaymentLinksResponse> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/payment-links`);
+  }
+
+  async createPaymentLink(facilitatorId: string, data: CreatePaymentLinkRequest): Promise<PaymentLink> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/payment-links`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPaymentLink(facilitatorId: string, linkId: string): Promise<PaymentLinkDetailResponse> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/payment-links/${linkId}`);
+  }
+
+  async updatePaymentLink(
+    facilitatorId: string,
+    linkId: string,
+    data: Partial<{
+      name: string;
+      description: string | null;
+      amount: string;
+      asset: string;
+      network: string;
+      successRedirectUrl: string | null;
+      webhookUrl: string | null;
+      active: boolean;
+    }>
+  ): Promise<PaymentLink> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/payment-links/${linkId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePaymentLink(facilitatorId: string, linkId: string): Promise<void> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/payment-links/${linkId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

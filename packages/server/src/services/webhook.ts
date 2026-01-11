@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-export interface WebhookPayload {
+export interface SettlementWebhookPayload {
   event: 'payment.settled';
   facilitatorId: string;
   timestamp: string;
@@ -15,6 +15,23 @@ export interface WebhookPayload {
     settledAt: string;
   };
 }
+
+export interface PaymentLinkWebhookPayload {
+  event: 'payment_link.payment';
+  paymentLinkId: string;
+  paymentLinkName: string;
+  timestamp: string;
+  payment: {
+    id: string;
+    payerAddress: string;
+    amount: string;
+    asset: string;
+    network: string;
+    transactionHash: string;
+  };
+}
+
+export type WebhookPayload = SettlementWebhookPayload | PaymentLinkWebhookPayload;
 
 /**
  * Generate a webhook secret (32 bytes, hex encoded)
@@ -110,7 +127,7 @@ export function sendSettlementWebhook(
     transactionHash: string | null;
   }
 ): void {
-  const payload: WebhookPayload = {
+  const payload: SettlementWebhookPayload = {
     event: 'payment.settled',
     facilitatorId,
     timestamp: new Date().toISOString(),

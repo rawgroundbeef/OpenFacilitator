@@ -41,8 +41,9 @@ import { NetworksSection, useNetworkStats } from '@/components/networks-section'
 import { TransactionsTable } from '@/components/transactions-table';
 import { SettlementActivityChart } from '@/components/settlement-activity-chart';
 import { WebhookSettings } from '@/components/webhook-settings';
+import { PaymentLinksSection } from '@/components/payment-links-section';
 
-type Tab = 'transactions' | 'settings';
+type Tab = 'transactions' | 'payment-links' | 'webhooks' | 'settings';
 
 function FaviconImage({ url, favicon, size = 'md' }: { url: string; favicon?: string | null; size?: 'md' | 'lg' }) {
   const [hasError, setHasError] = useState(false);
@@ -418,6 +419,28 @@ export default function FacilitatorDetailPage() {
               Transactions
             </button>
             <button
+              onClick={() => setActiveTab('payment-links')}
+              className={cn(
+                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                activeTab === 'payment-links'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Payment Links
+            </button>
+            <button
+              onClick={() => setActiveTab('webhooks')}
+              className={cn(
+                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
+                activeTab === 'webhooks'
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Webhooks
+            </button>
+            <button
               onClick={() => setActiveTab('settings')}
               className={cn(
                 'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
@@ -432,7 +455,11 @@ export default function FacilitatorDetailPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'transactions' ? (
+        {activeTab === 'payment-links' ? (
+          <PaymentLinksSection facilitatorId={id} facilitator={facilitator} />
+        ) : activeTab === 'webhooks' ? (
+          <WebhookSettings facilitatorId={id} />
+        ) : activeTab === 'transactions' ? (
           <div className="space-y-6">
             {/* Stats Row */}
             <div className="grid sm:grid-cols-4 gap-4">
@@ -748,9 +775,6 @@ export default function FacilitatorDetailPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Webhooks */}
-            <WebhookSettings facilitatorId={id} />
 
             {/* Danger Zone */}
             <Card className="border-red-500/50 dark:border-red-900/50 bg-red-500/5 dark:bg-red-950/20">

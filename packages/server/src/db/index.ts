@@ -248,6 +248,40 @@ export function initializeDatabase(dbPath?: string): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_expires ON subscriptions(expires_at);
     CREATE INDEX IF NOT EXISTS idx_subscriptions_tx_hash ON subscriptions(tx_hash);
+
+    -- Payment Links table (shareable payment URLs)
+    CREATE TABLE IF NOT EXISTS payment_links (
+      id TEXT PRIMARY KEY,
+      facilitator_id TEXT NOT NULL REFERENCES facilitators(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      description TEXT,
+      amount TEXT NOT NULL,
+      asset TEXT NOT NULL,
+      network TEXT NOT NULL,
+      success_redirect_url TEXT,
+      webhook_url TEXT,
+      webhook_secret TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Payment Link Payments table (track payments made via links)
+    CREATE TABLE IF NOT EXISTS payment_link_payments (
+      id TEXT PRIMARY KEY,
+      payment_link_id TEXT NOT NULL REFERENCES payment_links(id) ON DELETE CASCADE,
+      payer_address TEXT NOT NULL,
+      amount TEXT NOT NULL,
+      transaction_hash TEXT,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'success', 'failed')),
+      error_message TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payment_links_facilitator ON payment_links(facilitator_id);
+    CREATE INDEX IF NOT EXISTS idx_payment_links_active ON payment_links(active);
+    CREATE INDEX IF NOT EXISTS idx_payment_link_payments_link ON payment_link_payments(payment_link_id);
+    CREATE INDEX IF NOT EXISTS idx_payment_link_payments_status ON payment_link_payments(status);
   `);
 
   console.log('✅ Database initialized at', databasePath);
@@ -269,5 +303,6 @@ export * from './facilitators.js';
 export * from './transactions.js';
 export * from './user-wallets.js';
 export * from './subscriptions.js';
+export * from './payment-links.js';
 export * from './types.js';
 
