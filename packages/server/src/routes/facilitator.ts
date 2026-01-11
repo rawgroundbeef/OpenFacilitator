@@ -378,6 +378,12 @@ router.post('/settle', requireFacilitator, async (req: Request, res: Response) =
  * GET /pay/:linkId - Serve the payment page
  */
 router.get('/pay/:linkId', async (req: Request, res: Response) => {
+  // Set CSP headers to allow inline scripts and external dependencies
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.openfacilitator.io https://api.mainnet-beta.solana.com https://api.devnet.solana.com https://*.solana.com; img-src 'self' data:; font-src 'self';"
+  );
+
   const link = getPaymentLinkById(req.params.linkId);
 
   if (!link) {
@@ -783,7 +789,7 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
 
       <div id="status" class="status" style="display: none;"></div>
 
-      <button id="payButton" class="pay-button" onclick="connectAndPay()">
+      <button id="payButton" class="pay-button">
         Connect Wallet
       </button>
 
@@ -1151,6 +1157,9 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
         connectAndPayEVM();
       }
     }
+
+    // Attach event listener (CSP-safe, no inline onclick)
+    document.getElementById('payButton').addEventListener('click', connectAndPay);
   </script>
 </body>
 </html>`;
