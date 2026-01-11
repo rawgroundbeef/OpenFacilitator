@@ -12,18 +12,19 @@ const router: IRouter = Router();
 // Configuration
 const STATS_PRICE_ATOMIC = '5000000'; // $5 USDC (6 decimals)
 
-// Solana config
+// Solana config (USDC mint is constant, others configurable)
 const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const SOLANA_TREASURY = 'EnjogokdsxF7aK4bQ1KdJwzKbWePSpwKSHDgPy16GBuT';
-const SOLANA_FEE_PAYER = 'Hbe1vdFs4EQVVAzcV12muHhr6DEKwrT9roMXGPLxLBLP';
+const SOLANA_TREASURY = process.env.STATS_SOLANA_TREASURY || 'EnjogokdsxF7aK4bQ1KdJwzKbWePSpwKSHDgPy16GBuT';
+const SOLANA_FEE_PAYER = process.env.STATS_SOLANA_FEE_PAYER || 'Hbe1vdFs4EQVVAzcV12muHhr6DEKwrT9roMXGPLxLBLP';
 
-// Base config
+// Base config (USDC address is constant, others configurable)
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const BASE_TREASURY = '0xECfb34867Cc542E4B56E4Ed9161Eb704976710ce';
-const BASE_FEE_PAYER = '0x7C766F5fd9Ab3Dc09ACad5ECfacc99c4781efe29';
+const BASE_TREASURY = process.env.STATS_BASE_TREASURY || '0xECfb34867Cc542E4B56E4Ed9161Eb704976710ce';
+const BASE_FEE_PAYER = process.env.STATS_BASE_FEE_PAYER || '0x7C766F5fd9Ab3Dc09ACad5ECfacc99c4781efe29';
 
-// Facilitator endpoint
-const FACILITATOR_URL = 'https://pay.openfacilitator.io';
+// Facilitator endpoint (configurable for self-hosted deployments)
+const FACILITATOR_URL = process.env.STATS_FACILITATOR_URL || 'https://pay.openfacilitator.io';
+const API_URL = process.env.API_URL || 'https://api.openfacilitator.io';
 
 // Shared output schema for stats response
 const OUTPUT_SCHEMA = {
@@ -70,7 +71,7 @@ const REQUIREMENTS = {
     scheme: 'exact',
     network: 'solana',
     maxAmountRequired: STATS_PRICE_ATOMIC,
-    resource: 'https://api.openfacilitator.io/stats/solana',
+    resource: `${API_URL}/stats/solana`,
     asset: USDC_SOLANA_MINT,
     payTo: SOLANA_TREASURY,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
@@ -83,7 +84,7 @@ const REQUIREMENTS = {
     scheme: 'exact',
     network: 'base',
     maxAmountRequired: STATS_PRICE_ATOMIC,
-    resource: 'https://api.openfacilitator.io/stats/base',
+    resource: `${API_URL}/stats/base`,
     asset: USDC_BASE,
     payTo: BASE_TREASURY,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
@@ -223,8 +224,8 @@ router.get('/stats', (_req: Request, res: Response) => {
     error: 'Payment Required',
     message: 'Use /stats/solana or /stats/base for network-specific endpoints',
     endpoints: {
-      solana: 'https://api.openfacilitator.io/stats/solana',
-      base: 'https://api.openfacilitator.io/stats/base',
+      solana: `${API_URL}/stats/solana`,
+      base: `${API_URL}/stats/base`,
     },
   });
 });
@@ -238,13 +239,13 @@ router.get('/stats/price', (_req: Request, res: Response) => {
     priceAtomic: STATS_PRICE_ATOMIC,
     endpoints: {
       solana: {
-        url: 'https://api.openfacilitator.io/stats/solana',
+        url: `${API_URL}/stats/solana`,
         network: 'solana',
         asset: USDC_SOLANA_MINT,
         payTo: SOLANA_TREASURY,
       },
       base: {
-        url: 'https://api.openfacilitator.io/stats/base',
+        url: `${API_URL}/stats/base`,
         network: 'base',
         asset: USDC_BASE,
         payTo: BASE_TREASURY,

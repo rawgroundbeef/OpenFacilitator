@@ -18,13 +18,14 @@ const db: any = new Database(dbPath);
 // Get trusted origins from environment and defaults
 function getTrustedOrigins(): string[] {
   const dashboardUrl = process.env.DASHBOARD_URL;
-  
+  const additionalOrigins = process.env.ADDITIONAL_TRUSTED_ORIGINS;
+
   const origins = [
     // Development
     'http://localhost:3000',
     'http://localhost:3002',
     'http://localhost:5001',
-    // Production
+    // Production (OpenFacilitator hosted)
     'https://openfacilitator.io',
     'https://www.openfacilitator.io',
     'https://dashboard.openfacilitator.io',
@@ -32,8 +33,19 @@ function getTrustedOrigins(): string[] {
     'https://api.openfacilitator.io',
   ];
 
+  // Add custom dashboard URL if provided
   if (dashboardUrl && !origins.includes(dashboardUrl)) {
     origins.push(dashboardUrl);
+  }
+
+  // Add any additional trusted origins (comma-separated)
+  if (additionalOrigins) {
+    const extraOrigins = additionalOrigins.split(',').map(o => o.trim()).filter(Boolean);
+    for (const origin of extraOrigins) {
+      if (!origins.includes(origin)) {
+        origins.push(origin);
+      }
+    }
   }
 
   return origins;
