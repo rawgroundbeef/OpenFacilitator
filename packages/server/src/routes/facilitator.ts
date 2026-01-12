@@ -1432,6 +1432,12 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
         };
 
         const types = {
+          EIP712Domain: [
+            { name: 'name', type: 'string' },
+            { name: 'version', type: 'string' },
+            { name: 'chainId', type: 'uint256' },
+            { name: 'verifyingContract', type: 'address' }
+          ],
           TransferWithAuthorization: [
             { name: 'from', type: 'address' },
             { name: 'to', type: 'address' },
@@ -1445,9 +1451,9 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
         const message = {
           from: userAddress,
           to: paymentRequirements.payTo,
-          value: AMOUNT,
-          validAfter: 0,
-          validBefore: deadline,
+          value: String(AMOUNT),
+          validAfter: '0',
+          validBefore: String(deadline),
           nonce: nonce
         };
 
