@@ -116,6 +116,7 @@ export interface PaymentLinkRecord {
   success_redirect_url: string | null;  // Target URL (redirect or proxy target)
   method: string;              // HTTP method for proxy type (GET, POST, etc.)
   headers_forward: string;     // JSON array of headers to forward for proxy type
+  access_ttl: number;          // Seconds of access after payment (0 = pay per visit)
   webhook_id: string | null;   // Reference to webhooks table
   webhook_url: string | null;  // (deprecated, use webhook_id)
   webhook_secret: string | null; // (deprecated, use webhook_id)

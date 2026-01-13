@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type IRouter } from 'express';
 import { createFacilitator, type FacilitatorConfig, type TokenConfig, getSolanaPublicKey, networkToCaip2 } from '@openfacilitator/core';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { requireFacilitator } from '../middleware/tenant.js';
 import { createTransaction, updateTransactionStatus } from '../db/transactions.js';
 import { getFacilitatorById } from '../db/facilitators.js';
@@ -19,6 +20,57 @@ import { getProxyUrlBySlug } from '../db/proxy-urls.js';
 import type { Hex } from 'viem';
 
 const router: IRouter = Router();
+
+// Access token secret (use env var or fallback to a derived key)
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET ||
+  crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY || 'openfacilitator-access-default').digest('hex');
+
+/**
+ * Create a signed access token for a payment link
+ */
+function createAccessToken(linkId: string, expiresAt: number): string {
+  const payload = JSON.stringify({ linkId, exp: expiresAt });
+  const signature = crypto.createHmac('sha256', ACCESS_TOKEN_SECRET).update(payload).digest('base64url');
+  return Buffer.from(payload).toString('base64url') + '.' + signature;
+}
+
+/**
+ * Verify an access token and return the link ID if valid
+ */
+function verifyAccessToken(token: string, expectedLinkId: string): boolean {
+  try {
+    const [payloadB64, signature] = token.split('.');
+    if (!payloadB64 || !signature) return false;
+
+    const payload = Buffer.from(payloadB64, 'base64url').toString('utf-8');
+    const expectedSig = crypto.createHmac('sha256', ACCESS_TOKEN_SECRET).update(payload).digest('base64url');
+
+    if (signature !== expectedSig) return false;
+
+    const data = JSON.parse(payload) as { linkId: string; exp: number };
+    if (data.linkId !== expectedLinkId) return false;
+    if (Date.now() > data.exp * 1000) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parse cookies from Cookie header
+ */
+function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+  if (!cookieHeader) return {};
+  const cookies: Record<string, string> = {};
+  for (const cookie of cookieHeader.split(';')) {
+    const [name, ...rest] = cookie.trim().split('=');
+    if (name && rest.length > 0) {
+      cookies[name] = rest.join('=');
+    }
+  }
+  return cookies;
+}
 
 // Payment requirements schema (shared)
 const paymentRequirementsSchema = z.object({
@@ -554,6 +606,11 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
     return;
   }
 
+  // === Check for valid access cookie (if access_ttl is set) ===
+  const cookies = parseCookies(req.get('Cookie'));
+  const accessToken = cookies[`x402_access_${link.id}`];
+  const hasValidAccess = accessToken && link.access_ttl > 0 && verifyAccessToken(accessToken, link.id);
+
   // === x402 Protocol Handler ===
   if (wantsJson) {
     // Build facilitator URL
@@ -594,8 +651,47 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
       return;
     }
 
-    // No payment provided - return 402 with requirements
+    // No payment provided - check for valid access or return 402
     if (!paymentHeader) {
+      // If user has valid access from a previous payment, serve content directly
+      if (hasValidAccess) {
+        // For proxy type: forward to target
+        if (link.link_type === 'proxy' && link.success_redirect_url) {
+          const headersForward = JSON.parse(link.headers_forward || '[]') as string[];
+          const forwardHeaders: Record<string, string> = {
+            'Content-Type': req.get('Content-Type') || 'application/json',
+          };
+          for (const header of headersForward) {
+            const value = req.get(header);
+            if (value) forwardHeaders[header] = value;
+          }
+          try {
+            const targetResponse = await fetch(link.success_redirect_url, {
+              method: link.method || 'GET',
+              headers: forwardHeaders,
+            });
+            const targetContentType = targetResponse.headers.get('Content-Type') || 'application/json';
+            const targetBody = await targetResponse.text();
+            res.setHeader('Content-Type', targetContentType);
+            res.setHeader('X-Access-Granted', 'cookie');
+            res.status(targetResponse.status).send(targetBody);
+            return;
+          } catch (proxyError) {
+            console.error('[x402 Proxy] Error forwarding request:', proxyError);
+            res.status(502).json({ error: 'Proxy error', message: 'Failed to forward to target' });
+            return;
+          }
+        }
+        // For redirect type: return the redirect URL
+        if (link.link_type === 'redirect' && link.success_redirect_url) {
+          res.json({ success: true, redirectUrl: link.success_redirect_url, accessGranted: 'cookie' });
+          return;
+        }
+        // For payment type with valid access: just confirm access
+        res.json({ success: true, accessGranted: 'cookie', message: 'Access granted via previous payment' });
+        return;
+      }
+
       res.status(402).json({
         x402Version: 1,
         accepts: [paymentRequirements],
@@ -679,6 +775,13 @@ router.get('/pay/:linkId', async (req: Request, res: Response) => {
         transaction_hash: settleResult.transactionHash,
         status: 'success',
       });
+
+      // Set access cookie if access_ttl is configured
+      if (link.access_ttl > 0) {
+        const expiresAt = Math.floor(Date.now() / 1000) + link.access_ttl;
+        const token = createAccessToken(link.id, expiresAt);
+        res.setHeader('Set-Cookie', `x402_access_${link.id}=${token}; Path=/; Max-Age=${link.access_ttl}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+      }
 
       // Fire webhook and execute actions if configured
       if (settleResult.transactionHash) {
@@ -1705,6 +1808,13 @@ router.post('/pay/:linkId/complete', async (req: Request, res: Response) => {
     status: transactionHash ? 'success' : 'failed',
     error_message: errorMessage,
   });
+
+  // Set access cookie if access_ttl is configured and payment was successful
+  if (transactionHash && link.access_ttl > 0) {
+    const expiresAt = Math.floor(Date.now() / 1000) + link.access_ttl;
+    const token = createAccessToken(link.id, expiresAt);
+    res.setHeader('Set-Cookie', `x402_access_${link.id}=${token}; Path=/; Max-Age=${link.access_ttl}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+  }
 
   // Fire webhook and execute actions if configured
   if (transactionHash) {

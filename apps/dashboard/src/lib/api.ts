@@ -200,6 +200,7 @@ export interface PaymentLink {
   successRedirectUrl: string | null;
   method: string;
   headersForward: string[];
+  accessTtl: number;
   webhookId: string | null;
   webhookUrl: string | null;
   active: boolean;
@@ -235,6 +236,7 @@ export interface CreatePaymentLinkRequest {
   successRedirectUrl?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ANY';
   headersForward?: string[];
+  accessTtl?: number;
   webhookId?: string;
   webhookUrl?: string;
 }
@@ -592,6 +594,7 @@ class ApiClient {
       successRedirectUrl: string | null;
       method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ANY';
       headersForward: string[];
+      accessTtl: number;
       webhookId: string | null;
       webhookUrl: string | null;
       active: boolean;

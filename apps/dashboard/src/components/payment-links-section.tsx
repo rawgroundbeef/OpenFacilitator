@@ -101,6 +101,7 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
   const [successRedirectUrl, setSuccessRedirectUrl] = useState('');
   const [method, setMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ANY'>('GET');
   const [headersForward, setHeadersForward] = useState('');
+  const [accessTtl, setAccessTtl] = useState(0); // 0 = pay per visit
   const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -127,6 +128,7 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
         successRedirectUrl: successRedirectUrl || undefined,
         method: linkType === 'proxy' ? method : undefined,
         headersForward: linkType === 'proxy' && headersForward ? headersForward.split(',').map(h => h.trim()).filter(Boolean) : undefined,
+        accessTtl,
         webhookId: selectedWebhookId || undefined,
       }),
     onSuccess: () => {
@@ -165,6 +167,7 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
     setSuccessRedirectUrl('');
     setMethod('GET');
     setHeadersForward('');
+    setAccessTtl(0);
     setSelectedWebhookId(null);
   };
 
@@ -206,6 +209,7 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
     setSuccessRedirectUrl(link.successRedirectUrl || '');
     setMethod(link.method as typeof method || 'GET');
     setHeadersForward(link.headersForward?.join(', ') || '');
+    setAccessTtl(link.accessTtl || 0);
     setSelectedWebhookId(link.webhookId);
     setIsEditOpen(true);
   };
@@ -226,6 +230,7 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
         successRedirectUrl: successRedirectUrl || null,
         method: linkType === 'proxy' ? method : undefined,
         headersForward: linkType === 'proxy' && headersForward ? headersForward.split(',').map(h => h.trim()).filter(Boolean) : undefined,
+        accessTtl,
         webhookId: selectedWebhookId,
       },
     });
@@ -465,6 +470,29 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     Receive notifications when payments are made
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="accessTtl">Access Duration</Label>
+                  <Select
+                    value={accessTtl.toString()}
+                    onValueChange={(v) => setAccessTtl(parseInt(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Pay per visit</SelectItem>
+                      <SelectItem value="1">1 second (demo)</SelectItem>
+                      <SelectItem value="3600">1 hour</SelectItem>
+                      <SelectItem value="86400">24 hours</SelectItem>
+                      <SelectItem value="604800">7 days</SelectItem>
+                      <SelectItem value="2592000">30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    How long users can access after payment (browser cookie)
                   </p>
                 </div>
               </div>
@@ -725,6 +753,28 @@ export function PaymentLinksSection({ facilitatorId, facilitator }: PaymentLinks
               </Select>
               <p className="text-xs text-muted-foreground">
                 Receive notifications when payments are made
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-accessTtl">Access Duration</Label>
+              <Select
+                value={accessTtl.toString()}
+                onValueChange={(v) => setAccessTtl(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Pay per visit</SelectItem>
+                  <SelectItem value="1">1 second (demo)</SelectItem>
+                  <SelectItem value="3600">1 hour</SelectItem>
+                  <SelectItem value="86400">24 hours</SelectItem>
+                  <SelectItem value="604800">7 days</SelectItem>
+                  <SelectItem value="2592000">30 days</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                How long users can access after payment (browser cookie)
               </p>
             </div>
           </div>

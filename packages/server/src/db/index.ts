@@ -99,6 +99,13 @@ export function initializeDatabase(dbPath?: string): Database.Database {
       db.exec("UPDATE payment_links SET slug = id WHERE slug IS NULL");
       console.log('✅ Added unified link columns (link_type, slug, method, headers_forward)');
     }
+
+    // Add access_ttl column (seconds of access after payment, 0 = pay per visit)
+    const hasAccessTtl = paymentLinksColumns.some(col => col.name === 'access_ttl');
+    if (paymentLinksColumns.length > 0 && !hasAccessTtl) {
+      db.exec("ALTER TABLE payment_links ADD COLUMN access_ttl INTEGER NOT NULL DEFAULT 0");
+      console.log('✅ Added access_ttl column to payment_links table');
+    }
   } catch (e) {
     // Table might not exist yet, that's fine
   }
@@ -297,6 +304,7 @@ export function initializeDatabase(dbPath?: string): Database.Database {
       success_redirect_url TEXT,
       method TEXT NOT NULL DEFAULT 'GET',
       headers_forward TEXT NOT NULL DEFAULT '[]',
+      access_ttl INTEGER NOT NULL DEFAULT 0,
       webhook_id TEXT REFERENCES webhooks(id) ON DELETE SET NULL,
       webhook_url TEXT,
       webhook_secret TEXT,

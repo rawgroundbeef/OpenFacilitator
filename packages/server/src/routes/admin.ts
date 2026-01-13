@@ -1847,6 +1847,7 @@ const createPaymentLinkSchema = z.object({
   successRedirectUrl: z.string().url().max(2048).optional(), // Target URL for redirect/proxy
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ANY']).optional().default('GET'), // For proxy type
   headersForward: z.array(z.string()).optional(), // Headers to forward for proxy type
+  accessTtl: z.number().int().min(0).optional().default(0), // Seconds of access after payment (0 = pay per visit)
   webhookId: z.string().optional(), // Reference to first-class webhook
   webhookUrl: z.string().url().max(2048).optional(), // Deprecated: inline webhook URL
 });
@@ -1863,6 +1864,7 @@ const updatePaymentLinkSchema = z.object({
   successRedirectUrl: z.string().url().max(2048).optional().nullable(),
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ANY']).optional(),
   headersForward: z.array(z.string()).optional(),
+  accessTtl: z.number().int().min(0).optional(), // Seconds of access after payment (0 = pay per visit)
   webhookId: z.string().optional().nullable(), // Reference to first-class webhook
   webhookUrl: z.string().url().max(2048).optional().nullable(), // Deprecated: inline webhook URL
   active: z.boolean().optional(),
@@ -1912,6 +1914,7 @@ router.get('/facilitators/:id/payment-links', requireAuth, async (req: Request, 
         successRedirectUrl: link.success_redirect_url,
         method: link.method,
         headersForward: JSON.parse(link.headers_forward || '[]'),
+        accessTtl: link.access_ttl,
         webhookId: link.webhook_id,
         webhookUrl: link.webhook_url,
         active: link.active === 1,
@@ -1987,6 +1990,7 @@ router.post('/facilitators/:id/payment-links', requireAuth, async (req: Request,
       success_redirect_url: parsed.data.successRedirectUrl,
       method: parsed.data.method,
       headers_forward: parsed.data.headersForward,
+      access_ttl: parsed.data.accessTtl,
       webhook_id: parsed.data.webhookId,
       webhook_url: parsed.data.webhookUrl,
       webhook_secret: webhookSecret,
@@ -2008,6 +2012,7 @@ router.post('/facilitators/:id/payment-links', requireAuth, async (req: Request,
       successRedirectUrl: link.success_redirect_url,
       method: link.method,
       headersForward: JSON.parse(link.headers_forward || '[]'),
+      accessTtl: link.access_ttl,
       webhookId: link.webhook_id,
       webhookUrl: link.webhook_url,
       active: link.active === 1,
@@ -2058,6 +2063,7 @@ router.get('/facilitators/:id/payment-links/:linkId', requireAuth, async (req: R
       successRedirectUrl: link.success_redirect_url,
       method: link.method,
       headersForward: JSON.parse(link.headers_forward || '[]'),
+      accessTtl: link.access_ttl,
       webhookId: link.webhook_id,
       webhookUrl: link.webhook_url,
       active: link.active === 1,
@@ -2139,6 +2145,7 @@ router.patch('/facilitators/:id/payment-links/:linkId', requireAuth, async (req:
     if (parsed.data.successRedirectUrl !== undefined) updates.success_redirect_url = parsed.data.successRedirectUrl;
     if (parsed.data.method !== undefined) updates.method = parsed.data.method;
     if (parsed.data.headersForward !== undefined) updates.headers_forward = parsed.data.headersForward;
+    if (parsed.data.accessTtl !== undefined) updates.access_ttl = parsed.data.accessTtl;
     if (parsed.data.webhookId !== undefined) updates.webhook_id = parsed.data.webhookId;
     if (parsed.data.webhookUrl !== undefined) {
       updates.webhook_url = parsed.data.webhookUrl;
@@ -2171,6 +2178,7 @@ router.patch('/facilitators/:id/payment-links/:linkId', requireAuth, async (req:
       successRedirectUrl: link.success_redirect_url,
       method: link.method,
       headersForward: JSON.parse(link.headers_forward || '[]'),
+      accessTtl: link.access_ttl,
       webhookId: link.webhook_id,
       webhookUrl: link.webhook_url,
       active: link.active === 1,
