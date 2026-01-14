@@ -416,6 +416,10 @@ export class Facilitator {
           };
         }
 
+        // Debug logging for EVM authorization
+        console.log('[Facilitator] EVM authorization received:', JSON.stringify(authorization, null, 2));
+        console.log('[Facilitator] EVM signature received:', signature);
+
         const result = await executeERC3009Settlement({
           chainId,
           tokenAddress: requirements.asset as Address,

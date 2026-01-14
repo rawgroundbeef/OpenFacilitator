@@ -247,8 +247,10 @@ export async function executeERC3009Settlement(
     });
 
     // Parse signature into v, r, s
+    console.log('[ERC3009Settlement] Raw signature:', signature);
+    console.log('[ERC3009Settlement] Signature length:', signature.length);
     const { v, r, s } = parseSignature(signature);
-    console.log('[ERC3009Settlement] Parsed signature: v=%d, r=%s..., s=%s...', Number(v), r.slice(0, 10), s.slice(0, 10));
+    console.log('[ERC3009Settlement] Parsed signature: v=%d, r=%s, s=%s', Number(v), r, s);
 
     // Encode function data - using transferWithAuthorization (can be called by anyone)
     const data = encodeFunctionData({
