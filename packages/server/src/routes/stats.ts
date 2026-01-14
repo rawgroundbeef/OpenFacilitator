@@ -164,7 +164,7 @@ async function handleStatsRequest(
     if (!settleResult.success) {
       res.status(402).json({
         error: 'Payment settlement failed',
-        reason: settleResult.error || 'Unknown settlement error',
+        reason: settleResult.errorMessage || 'Unknown settlement error',
         accepts: [requirement],
       });
       return;

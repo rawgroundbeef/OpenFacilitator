@@ -107,7 +107,7 @@ export interface SettleResponse {
   /** Network the transaction was settled on */
   network?: string;
   /** Error message if failed */
-  error?: string;
+  errorMessage?: string;
 }
 
 export interface SupportedResponse {
