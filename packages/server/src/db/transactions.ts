@@ -203,6 +203,12 @@ export function getGlobalStats(): {
     volumeUsd24h: string;
     uniqueWallets: number;
   };
+  paymentLinks: {
+    totalSellers: number;
+    totalLinks: number;
+    totalPayments: number;
+    volumeUsd: string;
+  };
   facilitators: Array<{
     id: string;
     name: string;
@@ -249,6 +255,26 @@ export function getGlobalStats(): {
     )
     .get() as { count: number };
 
+  // Payment links stats (sellers = unique pay_to_address)
+  const paymentLinksStats = db
+    .prepare(
+      `
+      SELECT
+        COUNT(DISTINCT pl.pay_to_address) as total_sellers,
+        COUNT(DISTINCT pl.id) as total_links,
+        COUNT(plp.id) as total_payments,
+        COALESCE(SUM(CASE WHEN plp.status = 'success' THEN CAST(plp.amount AS INTEGER) ELSE 0 END), 0) as volume_atomic
+      FROM payment_links pl
+      LEFT JOIN payment_link_payments plp ON pl.id = plp.payment_link_id
+    `
+    )
+    .get() as {
+    total_sellers: number;
+    total_links: number;
+    total_payments: number;
+    volume_atomic: number;
+  };
+
   // Per-facilitator breakdown
   const perFacilitator = db
     .prepare(
@@ -284,6 +310,12 @@ export function getGlobalStats(): {
       volumeUsdAllTime: (volumeAllTime.total / 1_000_000).toFixed(2),
       volumeUsd24h: (volume24h.total / 1_000_000).toFixed(2),
       uniqueWallets: uniqueWallets.count,
+    },
+    paymentLinks: {
+      totalSellers: paymentLinksStats.total_sellers,
+      totalLinks: paymentLinksStats.total_links,
+      totalPayments: paymentLinksStats.total_payments,
+      volumeUsd: (paymentLinksStats.volume_atomic / 1_000_000).toFixed(2),
     },
     facilitators: perFacilitator.map((f) => ({
       id: f.id,

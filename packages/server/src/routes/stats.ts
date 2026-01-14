@@ -50,6 +50,15 @@ const OUTPUT_SCHEMA = {
             uniqueWallets: { type: 'number' },
           },
         },
+        paymentLinks: {
+          type: 'object',
+          properties: {
+            totalSellers: { type: 'number' },
+            totalLinks: { type: 'number' },
+            totalPayments: { type: 'number' },
+            volumeUsd: { type: 'string' },
+          },
+        },
         facilitators: {
           type: 'array',
           items: {
