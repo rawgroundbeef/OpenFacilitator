@@ -382,17 +382,6 @@ router.post('/verify', requireFacilitator, async (req: Request, res: Response) =
  */
 router.post('/settle', requireFacilitator, async (req: Request, res: Response) => {
   try {
-    // DEBUG: Log what we receive from SDK
-    console.log('[Settle] Facilitator subdomain:', req.facilitator?.subdomain);
-    console.log('[Settle] Raw request body keys:', Object.keys(req.body));
-    console.log('[Settle] paymentPayload type:', typeof req.body.paymentPayload);
-    if (typeof req.body.paymentPayload === 'object') {
-      console.log('[Settle] paymentPayload keys:', Object.keys(req.body.paymentPayload));
-      if (req.body.paymentPayload.payload) {
-        console.log('[Settle] Found nested payload.payload, keys:', Object.keys(req.body.paymentPayload.payload));
-      }
-    }
-
     const parsed = settleRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({
@@ -404,26 +393,6 @@ router.post('/settle', requireFacilitator, async (req: Request, res: Response) =
 
     // Normalize payload - accept both string and object format
     const paymentPayload = normalizePaymentPayload(parsed.data.paymentPayload);
-    console.log('[Settle] Normalized paymentPayload (first 300 chars):', paymentPayload.substring(0, 300));
-
-    // Decode and log what we're sending to core
-    try {
-      const decodedForLog = Buffer.from(paymentPayload, 'base64').toString('utf-8');
-      const parsedForLog = JSON.parse(decodedForLog);
-      console.log('[Settle] Decoded payload keys:', Object.keys(parsedForLog));
-      if (parsedForLog.payload) {
-        console.log('[Settle] Inner payload keys:', Object.keys(parsedForLog.payload));
-        if (parsedForLog.payload.signature) {
-          console.log('[Settle] Full signature:', parsedForLog.payload.signature);
-        }
-        if (parsedForLog.payload.authorization) {
-          console.log('[Settle] Authorization:', JSON.stringify(parsedForLog.payload.authorization));
-        }
-      }
-    } catch (e) {
-      console.log('[Settle] Could not decode/parse payload for logging');
-    }
-
     const { paymentRequirements } = parsed.data;
     const record = req.facilitator!;
 

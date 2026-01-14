@@ -223,17 +223,6 @@ router.post('/free/verify', async (req: Request, res: Response) => {
  */
 router.post('/free/settle', async (req: Request, res: Response) => {
   try {
-    // DEBUG: Log what we receive from SDK
-    console.log('[FreeSettle] Raw request body keys:', Object.keys(req.body));
-    console.log('[FreeSettle] paymentPayload type:', typeof req.body.paymentPayload);
-    if (typeof req.body.paymentPayload === 'object') {
-      console.log('[FreeSettle] paymentPayload keys:', Object.keys(req.body.paymentPayload));
-      // Check for nested payload
-      if (req.body.paymentPayload.payload) {
-        console.log('[FreeSettle] Found nested payload.payload, keys:', Object.keys(req.body.paymentPayload.payload));
-      }
-    }
-
     const facilitatorData = getFreeFacilitatorConfig();
 
     if (!facilitatorData) {
@@ -254,28 +243,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
       return;
     }
 
-    // DEBUG: Log the normalized payload
     const paymentPayload = normalizePaymentPayload(parsed.data.paymentPayload);
-    console.log('[FreeSettle] Normalized paymentPayload (first 300 chars):', paymentPayload.substring(0, 300));
-
-    // Decode and log what we're sending to core
-    try {
-      const decodedForLog = Buffer.from(paymentPayload, 'base64').toString('utf-8');
-      const parsedForLog = JSON.parse(decodedForLog);
-      console.log('[FreeSettle] Decoded payload keys:', Object.keys(parsedForLog));
-      if (parsedForLog.payload) {
-        console.log('[FreeSettle] Inner payload keys:', Object.keys(parsedForLog.payload));
-        // Log the full signature for debugging
-        if (parsedForLog.payload.signature) {
-          console.log('[FreeSettle] Full signature:', parsedForLog.payload.signature);
-        }
-        if (parsedForLog.payload.authorization) {
-          console.log('[FreeSettle] Authorization:', JSON.stringify(parsedForLog.payload.authorization));
-        }
-      }
-    } catch (e) {
-      console.log('[FreeSettle] Could not decode/parse payload for logging');
-    }
     const { paymentRequirements } = parsed.data;
 
     const facilitator = createFacilitator(facilitatorData.config);

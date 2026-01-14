@@ -138,35 +138,6 @@ async function handleStatsRequest(
     try {
       const decoded = Buffer.from(paymentHeader, 'base64').toString('utf-8');
       paymentPayload = JSON.parse(decoded);
-
-      // DEBUG: Log the raw X-PAYMENT structure
-      console.log('[Stats] Raw X-PAYMENT header (first 200 chars):', paymentHeader.substring(0, 200));
-      console.log('[Stats] Decoded payload structure:', JSON.stringify(paymentPayload, null, 2));
-
-      // CRITICAL: Compare original vs re-encoded to detect any JSON round-trip issues
-      const reEncoded = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
-      const originalMatch = reEncoded === paymentHeader;
-      console.log('[Stats] ROUND-TRIP CHECK: original === re-encoded?', originalMatch);
-      if (!originalMatch) {
-        console.log('[Stats] MISMATCH DETECTED! Original length:', paymentHeader.length, ', Re-encoded length:', reEncoded.length);
-        // Decode re-encoded to see the difference
-        const reDecoded = JSON.parse(Buffer.from(reEncoded, 'base64').toString('utf-8'));
-        const originalDecoded = JSON.parse(decoded);
-        console.log('[Stats] Original decoded keys:', Object.keys(originalDecoded).sort());
-        console.log('[Stats] Re-encoded decoded keys:', Object.keys(reDecoded).sort());
-      }
-
-      // Log authorization details if present (checking both flat and nested formats)
-      const auth = (paymentPayload as any).authorization || (paymentPayload as any).payload?.authorization;
-      const sig = (paymentPayload as any).signature || (paymentPayload as any).payload?.signature;
-      console.log('[Stats] Authorization found:', auth ? 'yes' : 'no');
-      console.log('[Stats] Signature found:', sig ? `yes (${sig.substring(0, 20)}...)` : 'no');
-      if (auth) {
-        console.log('[Stats] Auth.from:', auth.from);
-        console.log('[Stats] Auth.to:', auth.to);
-        console.log('[Stats] Auth.value:', auth.value);
-        console.log('[Stats] Auth.nonce:', auth.nonce);
-      }
     } catch {
       res.status(400).json({
         error: 'Invalid payment payload',
@@ -176,7 +147,6 @@ async function handleStatsRequest(
     }
 
     // Verify payment
-    console.log('[Stats] Calling verify with requirements:', JSON.stringify(requirement, null, 2));
     const verifyResult = await facilitator.verify(paymentPayload, requirement as PaymentRequirements);
 
     if (!verifyResult.valid) {
