@@ -18,7 +18,8 @@ import {
 import fs from 'fs';
 
 describe('Nonce Tracker Service', () => {
-  const testDbPath = './data/test-nonce-tracker.db';
+  // Use unique database file to avoid conflicts with other tests
+  const testDbPath = `./data/test-nonce-tracker-${Date.now()}.db`;
   const testFacilitatorId = 'test-facilitator-123';
 
   beforeAll(() => {
@@ -372,7 +373,7 @@ describe('Nonce Tracker Service', () => {
     });
 
     it('should handle past expiration times gracefully', () => {
-      const nonce = '0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD';
+      const nonce = '0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE';
       const from = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
       const chainId = 8453;
 
@@ -385,6 +386,7 @@ describe('Nonce Tracker Service', () => {
       };
 
       // Should still acquire (expiration validation happens elsewhere)
+      // The nonce tracker doesn't validate expiration - that's done in ERC3009 verification
       const result = tryAcquireNonce(params);
       expect(result.acquired).toBe(true);
     });
