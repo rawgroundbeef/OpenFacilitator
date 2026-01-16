@@ -80,11 +80,11 @@ const OUTPUT_SCHEMA = {
   },
 };
 
-// Payment requirements by network
+// Payment requirements by network (x402 v2 with CAIP-2 identifiers)
 const REQUIREMENTS = {
   solana: {
     scheme: 'exact',
-    network: 'solana',
+    network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', // CAIP-2 Solana mainnet
     maxAmountRequired: STATS_PRICE_ATOMIC,
     resource: `${API_URL}/stats/solana`,
     asset: USDC_SOLANA_MINT,
@@ -97,7 +97,7 @@ const REQUIREMENTS = {
   },
   base: {
     scheme: 'exact',
-    network: 'base',
+    network: 'eip155:8453', // CAIP-2 Base mainnet
     maxAmountRequired: STATS_PRICE_ATOMIC,
     resource: `${API_URL}/stats/base`,
     asset: USDC_BASE,
@@ -124,7 +124,7 @@ async function handleStatsRequest(
   // If no payment provided, return 402 with requirements
   if (!paymentHeader) {
     res.status(402).json({
-      x402Version: 1,
+      x402Version: 2,
       accepts: [requirement],
       error: 'Payment Required',
       message: `This endpoint requires a $5 USDC payment via x402 (${network})`,
@@ -210,7 +210,7 @@ router.get('/stats/base', (req: Request, res: Response) => {
  */
 router.get('/stats', (_req: Request, res: Response) => {
   res.status(402).json({
-    x402Version: 1,
+    x402Version: 2,
     accepts: [REQUIREMENTS.solana, REQUIREMENTS.base],
     error: 'Payment Required',
     message: 'Use /stats/solana or /stats/base for network-specific endpoints',

@@ -717,10 +717,11 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
                         product.network === 'solana-devnet' ||
                         product.network.startsWith('solana:');
 
-    // Build payment requirements
+    // Build payment requirements (x402 v2 with CAIP-2 network identifier)
+    const caip2Network = networkToCaip2[product.network] || product.network;
     const paymentRequirements: Record<string, unknown> = {
       scheme: 'exact',
-      network: product.network,
+      network: caip2Network,
       maxAmountRequired: product.amount,
       asset: product.asset,
       payTo: product.pay_to_address,
@@ -789,7 +790,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
       const productRequiredFields: RequiredFieldDefinition[] = JSON.parse(product.required_fields || '[]');
 
       res.status(402).json({
-        x402Version: 1,
+        x402Version: 2,
         accepts: [paymentRequirements],
         error: 'Payment Required',
         message: product.description || product.name,
@@ -855,7 +856,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          x402Version: 1,
+          x402Version: 2,
           paymentPayload,
           paymentRequirements,
         }),
@@ -881,7 +882,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          x402Version: 1,
+          x402Version: 2,
           paymentPayload,
           paymentRequirements,
         }),
@@ -1604,7 +1605,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
 
         // Build payment payload for Solana
         const paymentPayload = {
-          x402Version: 1,
+          x402Version: 2,
           scheme: 'exact',
           network: NETWORK,
           payload: {
@@ -1619,7 +1620,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            x402Version: 1,
+            x402Version: 2,
             paymentPayload: btoa(JSON.stringify(paymentPayload)),
             paymentRequirements
           })
@@ -1930,10 +1931,11 @@ router.get('/pay/:productId/requirements', async (req: Request, res: Response) =
                       product.network === 'solana-devnet' ||
                       product.network.startsWith('solana:');
 
-  // Build payment requirements - payments go to product's pay_to_address (not facilitator wallet)
+  // Build payment requirements (x402 v2 with CAIP-2 network identifier)
+  const caip2Network = networkToCaip2[product.network] || product.network;
   const paymentRequirements: Record<string, unknown> = {
     scheme: 'exact',
-    network: product.network,
+    network: caip2Network,
     maxAmountRequired: product.amount,
     asset: product.asset,
     payTo: product.pay_to_address, // Payments go to user-specified address
@@ -2074,9 +2076,11 @@ function buildProxyUrlPaymentRequirements(
                    proxyUrl.price_network === 'solana-devnet' ||
                    proxyUrl.price_network.startsWith('solana:');
 
+  // Convert to CAIP-2 network identifier for x402 v2
+  const caip2Network = networkToCaip2[proxyUrl.price_network] || proxyUrl.price_network;
   const requirements: Record<string, unknown> = {
     scheme: 'exact',
-    network: proxyUrl.price_network,
+    network: caip2Network,
     maxAmountRequired: proxyUrl.price_amount,
     asset: proxyUrl.price_asset,
     payTo: proxyUrl.pay_to_address,
@@ -2621,7 +2625,7 @@ function generateProxyUrlPaymentPage(
         const signedTxBase64 = btoa(String.fromCharCode(...serializedTx));
 
         const paymentPayload = {
-          x402Version: 1,
+          x402Version: 2,
           scheme: 'exact',
           network: NETWORK,
           payload: { transaction: signedTxBase64 }
@@ -2633,7 +2637,7 @@ function generateProxyUrlPaymentPage(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            x402Version: 1,
+            x402Version: 2,
             paymentPayload: btoa(JSON.stringify(paymentPayload)),
             paymentRequirements
           })
@@ -2714,7 +2718,7 @@ function generateProxyUrlPaymentPage(
         });
 
         const paymentPayload = {
-          x402Version: 1,
+          x402Version: 2,
           scheme: 'exact',
           network: NETWORK,
           payload: { signature, authorization }
@@ -2726,7 +2730,7 @@ function generateProxyUrlPaymentPage(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            x402Version: 1,
+            x402Version: 2,
             paymentPayload: btoa(JSON.stringify(paymentPayload)),
             paymentRequirements
           })
@@ -2869,7 +2873,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
   // === x402 Protocol Handler (for API clients) ===
   if (!paymentHeader) {
     res.status(402).json({
-      x402Version: 1,
+      x402Version: 2,
       accepts: [paymentRequirements],
       error: 'Payment Required',
       message: proxyUrl.name,
@@ -2892,7 +2896,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        x402Version: 1,
+        x402Version: 2,
         paymentPayload,
         paymentRequirements,
       }),
@@ -2917,7 +2921,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        x402Version: 1,
+        x402Version: 2,
         paymentPayload,
         paymentRequirements,
       }),

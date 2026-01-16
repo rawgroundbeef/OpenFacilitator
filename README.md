@@ -115,6 +115,7 @@ pnpm turbo build --filter=@openfacilitator/server
 | `/supported` | GET | List supported payment networks and tokens |
 | `/verify` | POST | Verify a payment authorization |
 | `/settle` | POST | Execute a payment settlement |
+| `/discovery/resources` | GET | List available resources (products/links) |
 | `/health` | GET | Health check |
 
 ### Auth Endpoints (Better Auth)
@@ -141,17 +142,21 @@ pnpm turbo build --filter=@openfacilitator/server
 ### Example: Check Supported Networks
 
 ```bash
-curl https://yourname.openfacilitator.io/supported
+curl https://yourdomain.com/supported
 ```
 
 ```json
 {
-  "x402Version": 1,
   "kinds": [
     {
+      "x402Version": 1,
       "scheme": "exact",
-      "network": "base-sepolia",
-      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+      "network": "base"
+    },
+    {
+      "x402Version": 2,
+      "scheme": "exact",
+      "network": "eip155:8453"
     }
   ]
 }
