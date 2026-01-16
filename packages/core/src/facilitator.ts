@@ -464,6 +464,7 @@ export class Facilitator {
           },
           signature: signature as Hex,
           facilitatorPrivateKey: privateKey as Hex,
+          nonceValidator: this.config.nonceValidator, // Inject persistent nonce validator
         });
 
         if (result.success) {

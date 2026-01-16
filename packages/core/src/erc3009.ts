@@ -207,12 +207,20 @@ export interface ERC3009Authorization {
   nonce: Hex;
 }
 
+// Import NonceValidator type from types.ts to avoid duplication
+import type { NonceValidator } from './types.js';
+
 export interface SettlementParams {
   chainId: number;
   tokenAddress: Address;
   authorization: ERC3009Authorization;
   signature: Hex;
   facilitatorPrivateKey: Hex;
+  /**
+   * Optional external nonce validator for persistent tracking
+   * If not provided, falls back to in-memory validation only
+   */
+  nonceValidator?: NonceValidator;
 }
 
 export interface SettlementResult {
@@ -228,7 +236,7 @@ export interface SettlementResult {
 export async function executeERC3009Settlement(
   params: SettlementParams
 ): Promise<SettlementResult> {
-  const { chainId, tokenAddress, authorization, signature, facilitatorPrivateKey } = params;
+  const { chainId, tokenAddress, authorization, signature, facilitatorPrivateKey, nonceValidator } = params;
 
   console.log('[ERC3009Settlement] Starting settlement:', {
     chainId,
@@ -239,21 +247,53 @@ export async function executeERC3009Settlement(
     nonce: authorization.nonce,
     validAfter: authorization.validAfter,
     validBefore: authorization.validBefore,
+    hasPersistentValidator: !!nonceValidator,
   });
 
-  // Deduplication: prevent double-submission of same nonce
-  if (!tryAcquireNonce(chainId, authorization.from, authorization.nonce)) {
-    console.warn('[ERC3009Settlement] DUPLICATE BLOCKED: Nonce already being processed:', authorization.nonce);
+  // Nonce validation with two-tier approach:
+  // 1. If external validator provided (server with database), use it for persistent tracking
+  // 2. Otherwise, fall back to in-memory cache only
+  let nonceAcquired = false;
+  let nonceRejectionReason: string | undefined;
+
+  if (nonceValidator) {
+    // Use external persistent validator (L1 cache + L2 database)
+    const result = await nonceValidator.tryAcquire({
+      nonce: authorization.nonce,
+      from: authorization.from,
+      chainId,
+      expiresAt: authorization.validBefore,
+    });
+    nonceAcquired = result.acquired;
+    nonceRejectionReason = result.reason;
+  } else {
+    // Fall back to in-memory only (L1 cache)
+    nonceAcquired = tryAcquireNonce(chainId, authorization.from, authorization.nonce);
+    if (!nonceAcquired) {
+      nonceRejectionReason = 'This authorization is already being processed (in-memory cache)';
+    }
+  }
+
+  if (!nonceAcquired) {
+    console.warn('[ERC3009Settlement] DUPLICATE BLOCKED:', {
+      nonce: authorization.nonce,
+      reason: nonceRejectionReason,
+    });
     return {
       success: false,
-      errorMessage: 'Duplicate submission: this authorization is already being processed',
+      errorMessage: nonceRejectionReason || 'Duplicate submission: this authorization is already being processed',
     };
   }
 
   // Get chain config
   const config = chainConfigs[chainId];
   if (!config) {
-    releaseNonce(chainId, authorization.from, authorization.nonce);
+    // Release nonce on early failure (before on-chain submission)
+    if (nonceValidator?.release) {
+      nonceValidator.release(authorization.nonce, authorization.from, chainId);
+    } else {
+      releaseNonce(chainId, authorization.from, authorization.nonce);
+    }
     return {
       success: false,
       errorMessage: `Unsupported chain ID: ${chainId}`,
@@ -310,7 +350,12 @@ export async function executeERC3009Settlement(
     
     if (ethBalance < 100000n * gasPrice) {
       console.error('[ERC3009Settlement] Insufficient ETH for gas!');
-      releaseNonce(chainId, authorization.from, authorization.nonce);
+      // Release nonce on early failure (before on-chain submission)
+      if (nonceValidator?.release) {
+        nonceValidator.release(authorization.nonce, authorization.from, chainId);
+      } else {
+        releaseNonce(chainId, authorization.from, authorization.nonce);
+      }
       return {
         success: false,
         errorMessage: 'Facilitator has insufficient ETH for gas',
@@ -343,6 +388,12 @@ export async function executeERC3009Settlement(
 
     if (receipt.status === 'success') {
       console.log('[ERC3009Settlement] SUCCESS!');
+
+      // Mark nonce as successfully settled with transaction hash
+      if (nonceValidator?.markSettled) {
+        nonceValidator.markSettled(authorization.nonce, authorization.from, chainId, hash);
+      }
+
       return {
         success: true,
         transactionHash: hash,
@@ -385,7 +436,13 @@ export async function executeERC3009Settlement(
     console.error('[ERC3009Settlement] Error:', error);
     const errMsg = error instanceof Error ? error.message : 'Unknown error during settlement';
     // Release nonce on error so user can retry with same auth if it wasn't submitted
-    releaseNonce(chainId, authorization.from, authorization.nonce);
+    // SECURITY NOTE: We only release from cache, NOT from database
+    // This prevents retry after database has recorded the nonce
+    if (nonceValidator?.release) {
+      nonceValidator.release(authorization.nonce, authorization.from, chainId);
+    } else {
+      releaseNonce(chainId, authorization.from, authorization.nonce);
+    }
     return {
       success: false,
       errorMessage: errMsg,
