@@ -39,9 +39,8 @@ Your facilitator will be running at `http://localhost:3001`
 
 ### Managed Service
 
-Visit [openfacilitator.io](https://openfacilitator.io) to get your own subdomain instantly:
-- **Starter** ($10/mo): `yourname.openfacilitator.io`
-- **Pro** ($20/mo): Custom domain with auto-SSL
+Visit [openfacilitator.io](https://openfacilitator.io) to deploy your own facilitator:
+- **$5/mo**: Bring your own domain with auto-SSL
 
 ## 📦 Project Structure
 
