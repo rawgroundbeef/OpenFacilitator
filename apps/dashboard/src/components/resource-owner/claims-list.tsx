@@ -7,6 +7,7 @@ import {
   XCircle,
   AlertCircle,
   MoreVertical,
+  ExternalLink,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,18 @@ export function ClaimsList({
   const formatAmount = (amount: string) => {
     const value = Number(amount) / 1_000_000;
     return `$${value.toFixed(2)}`;
+  };
+
+  const getExplorerUrl = (network: string, txHash: string) => {
+    const explorers: Record<string, string> = {
+      base: 'https://basescan.org/tx/',
+      'base-sepolia': 'https://sepolia.basescan.org/tx/',
+      solana: 'https://solscan.io/tx/',
+      'solana-devnet': 'https://solscan.io/tx/',
+    };
+    const baseUrl = explorers[network] || explorers['base'];
+    const suffix = network === 'solana-devnet' ? '?cluster=devnet' : '';
+    return `${baseUrl}${txHash}${suffix}`;
   };
 
   const getStatusIcon = (status: string) => {
@@ -167,15 +180,33 @@ export function ClaimsList({
                     <Badge variant="outline" className="capitalize">{claim.network}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    To: <code className="font-mono">{formatAddress(claim.userWallet)}</code>
-                    {' · '}
-                    Tx: <code className="font-mono">{formatAddress(claim.originalTxHash)}</code>
+                    User: <code className="font-mono">{formatAddress(claim.userWallet)}</code>
                   </p>
-                  {claim.reason && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Reason: {claim.reason}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Reason: {claim.reason || 'Not specified'}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs">
+                    <a
+                      href={getExplorerUrl(claim.network, claim.originalTxHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                    >
+                      Original: <code className="font-mono">{formatAddress(claim.originalTxHash)}</code>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    {claim.status === 'paid' && claim.payoutTxHash && (
+                      <a
+                        href={getExplorerUrl(claim.network, claim.payoutTxHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:text-green-700 inline-flex items-center gap-1"
+                      >
+                        Refund: <code className="font-mono">{formatAddress(claim.payoutTxHash)}</code>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
