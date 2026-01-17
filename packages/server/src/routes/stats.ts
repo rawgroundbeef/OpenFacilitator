@@ -16,12 +16,10 @@ const STATS_PRICE_ATOMIC = '5000000'; // $5 USDC (6 decimals)
 // Solana config (USDC mint is constant, treasury configurable)
 const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const SOLANA_TREASURY = process.env.TREASURY_SOLANA || 'EnjogokdsxF7aK4bQ1KdJwzKbWePSpwKSHDgPy16GBuT';
-const SOLANA_FEE_PAYER = process.env.FEE_PAYER_SOLANA || 'Hbe1vdFs4EQVVAzcV12muHhr6DEKwrT9roMXGPLxLBLP';
 
 // Base config (USDC address is constant, treasury configurable)
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_TREASURY = process.env.TREASURY_BASE || '0xECfb34867Cc542E4B56E4Ed9161Eb704976710ce';
-const BASE_FEE_PAYER = process.env.FEE_PAYER_BASE || '0x7C766F5fd9Ab3Dc09ACad5ECfacc99c4781efe29';
 
 // Facilitator endpoint (configurable for self-hosted deployments)
 const FACILITATOR_URL = process.env.STATS_FACILITATOR_URL || 'https://pay.openfacilitator.io';
@@ -80,8 +78,8 @@ const OUTPUT_SCHEMA = {
   },
 };
 
-// Payment requirements by network (x402 v2 with CAIP-2 identifiers)
-const REQUIREMENTS = {
+// Base requirements by network (feePayer added dynamically from facilitator)
+const BASE_REQUIREMENTS = {
   solana: {
     scheme: 'exact',
     network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', // CAIP-2 Solana mainnet
@@ -90,9 +88,6 @@ const REQUIREMENTS = {
     asset: USDC_SOLANA_MINT,
     payTo: SOLANA_TREASURY,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
-    extra: {
-      feePayer: SOLANA_FEE_PAYER,
-    },
     outputSchema: OUTPUT_SCHEMA,
   },
   base: {
@@ -103,12 +98,20 @@ const REQUIREMENTS = {
     asset: USDC_BASE,
     payTo: BASE_TREASURY,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
-    extra: {
-      feePayer: BASE_FEE_PAYER,
-    },
     outputSchema: OUTPUT_SCHEMA,
   },
 };
+
+// Get requirements with feePayer from facilitator SDK
+async function getRequirements(network: 'solana' | 'base') {
+  const baseReq = BASE_REQUIREMENTS[network];
+  const feePayer = await facilitator.getFeePayer(baseReq.network);
+
+  return {
+    ...baseReq,
+    extra: feePayer ? { feePayer } : undefined,
+  };
+}
 
 /**
  * Shared handler for stats endpoints
@@ -119,7 +122,7 @@ async function handleStatsRequest(
   network: 'solana' | 'base'
 ) {
   const paymentHeader = req.header('X-PAYMENT');
-  const requirement = REQUIREMENTS[network];
+  const requirement = await getRequirements(network);
 
   // If no payment provided, return 402 with requirements
   if (!paymentHeader) {
