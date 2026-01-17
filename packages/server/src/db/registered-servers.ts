@@ -30,12 +30,15 @@ export function createRegisteredServer(data: {
   const apiKey = generateApiKey();
   const apiKeyHash = hashApiKey(apiKey);
 
+  // Use empty string for URL if not provided (legacy schema requires non-null)
+  const url = data.url || '';
+
   const stmt = db.prepare(`
     INSERT INTO registered_servers (id, resource_owner_id, url, name, api_key_hash)
     VALUES (?, ?, ?, ?, ?)
   `);
 
-  stmt.run(id, data.resource_owner_id, data.url || null, data.name || null, apiKeyHash);
+  stmt.run(id, data.resource_owner_id, url, data.name || null, apiKeyHash);
 
   const server = getRegisteredServerById(id)!;
   return { server, apiKey };

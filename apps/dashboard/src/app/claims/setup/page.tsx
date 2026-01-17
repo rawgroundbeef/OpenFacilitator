@@ -810,7 +810,7 @@ function ClaimsSetupContent() {
                               {server.active ? 'Active' : 'Revoked'}
                             </Badge>
                           </div>
-                          {server.url && (
+                          {server.url && server.url.length > 0 && (
                             <p className="text-sm text-muted-foreground truncate mt-1 ml-6">
                               {server.url}
                             </p>

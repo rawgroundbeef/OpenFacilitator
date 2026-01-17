@@ -541,7 +541,7 @@ export function initializeDatabase(dbPath?: string): Database.Database {
     CREATE TABLE IF NOT EXISTS registered_servers (
       id TEXT PRIMARY KEY,
       resource_owner_id TEXT NOT NULL REFERENCES resource_owners(id) ON DELETE CASCADE,
-      url TEXT,
+      url TEXT NOT NULL DEFAULT '',
       name TEXT,
       api_key_hash TEXT NOT NULL,
       active INTEGER NOT NULL DEFAULT 1,

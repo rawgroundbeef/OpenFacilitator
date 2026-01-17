@@ -248,7 +248,7 @@ export interface RefundWalletRecord {
 export interface RegisteredServerRecord {
   id: string;
   resource_owner_id: string;
-  url: string | null;            // Optional server URL for reference
+  url: string;                   // Server URL (empty string if not provided)
   name: string | null;           // Label for identifying the key
   api_key_hash: string;
   active: number;                // 0 = revoked, 1 = active
