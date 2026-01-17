@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import { signUp } from '@/lib/auth-client';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +49,8 @@ export default function SignUpPage() {
         return;
       }
 
-      router.push('/dashboard');
+      // Redirect to callback URL or dashboard
+      router.push(callbackUrl);
     } catch (err) {
       setError('An unexpected error occurred');
     } finally {
@@ -155,7 +158,10 @@ export default function SignUpPage() {
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/auth/signin" className="text-primary hover:underline font-medium">
+              <Link
+                href={`/auth/signin${callbackUrl !== '/dashboard' ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+                className="text-primary hover:underline font-medium"
+              >
                 Sign in
               </Link>
             </div>
