@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   DollarSign,
   Clock,
@@ -8,6 +9,7 @@ import {
   AlertCircle,
   MoreVertical,
   ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +50,21 @@ export function ClaimsList({
   onRejectClaim,
   onExecutePayout,
 }: ClaimsListProps) {
+  const [processingClaims, setProcessingClaims] = useState<Set<string>>(new Set());
+
+  const handleAction = async (claimId: string, action: () => Promise<void>) => {
+    setProcessingClaims((prev) => new Set(prev).add(claimId));
+    try {
+      await action();
+    } finally {
+      setProcessingClaims((prev) => {
+        const next = new Set(prev);
+        next.delete(claimId);
+        return next;
+      });
+    }
+  };
+
   const formatAmount = (amount: string) => {
     const value = Number(amount) / 1_000_000;
     return `$${value.toFixed(2)}`;
@@ -213,37 +230,43 @@ export function ClaimsList({
                     {new Date(claim.reportedAt).toLocaleDateString()}
                   </span>
                   {(claim.status === 'pending' || claim.status === 'approved') && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {claim.status === 'pending' && (
-                          <>
-                            <DropdownMenuItem onClick={() => onApproveClaim(claim.id)}>
-                              <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                              Approve
+                    processingClaims.has(claim.id) ? (
+                      <Button variant="ghost" size="sm" disabled>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </Button>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {claim.status === 'pending' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleAction(claim.id, () => onApproveClaim(claim.id))}>
+                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleAction(claim.id, () => onRejectClaim(claim.id))}
+                                className="text-red-600"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Reject
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {claim.status === 'approved' && (
+                            <DropdownMenuItem onClick={() => handleAction(claim.id, () => onExecutePayout(claim.id))}>
+                              <DollarSign className="h-4 w-4 mr-2 text-green-500" />
+                              Execute Payout
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onRejectClaim(claim.id)}
-                              className="text-red-600"
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Reject
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {claim.status === 'approved' && (
-                          <DropdownMenuItem onClick={() => onExecutePayout(claim.id)}>
-                            <DollarSign className="h-4 w-4 mr-2 text-green-500" />
-                            Execute Payout
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )
                   )}
                 </div>
               </div>
