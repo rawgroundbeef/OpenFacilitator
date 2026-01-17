@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Globe, Github, Check, Copy, Zap, Code, Sparkles, ShieldCheck, Link2, Bell } from 'lucide-react';
+import { ArrowRight, Globe, Github, Check, Copy, Zap, Code, Sparkles, ShieldCheck, Shield, Link2, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { Navbar } from '@/components/navbar';
 
@@ -77,10 +77,6 @@ export default function Home() {
       <section className="py-12 px-6 border-y border-border bg-secondary/30">
         <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-8 text-muted-foreground">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" />
-            <span className="font-medium">Non-Custodial</span>
-          </div>
-          <div className="flex items-center gap-2">
             <Globe className="w-5 h-5 text-primary" />
             <span className="font-medium">EVM + Solana</span>
           </div>
@@ -96,6 +92,10 @@ export default function Home() {
             <Zap className="w-5 h-5 text-primary" />
             <span className="font-medium">No Rate Limits</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="font-medium">Refund Protection</span>
+          </div>
         </div>
       </section>
 
@@ -106,7 +106,7 @@ export default function Home() {
             Or just use ours
           </h2>
           <p className="text-muted-foreground text-center text-balance mb-12 max-w-xl mx-auto">
-            Completely free. Start accepting payments in&nbsp;seconds.
+            Completely free. Start accepting payments in&nbsp;seconds. Offer refund protection to your users.
           </p>
 
           <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
@@ -115,6 +115,19 @@ export default function Home() {
             </span>
             <CopyButton text={FREE_ENDPOINT} />
           </div>
+
+          {/* Refund Protection callout */}
+          <Link
+            href="/claims/setup?facilitator=pay.openfacilitator.io"
+            className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <Shield className="w-4 h-4 text-primary" />
+            <span>
+              <span className="font-medium text-foreground group-hover:text-primary transition-colors">Refund Protection Available</span>
+              {' — '}Automatically refund users when API calls fail
+            </span>
+            <ArrowRight className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+          </Link>
 
           {/* Quick code example */}
           <div className="mt-6 rounded-xl bg-[#0d1117] overflow-hidden">
