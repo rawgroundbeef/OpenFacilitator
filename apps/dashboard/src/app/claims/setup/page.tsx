@@ -804,14 +804,16 @@ function ClaimsSetupContent() {
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{server.name || 'Unnamed Server'}</span>
+                            <span className="font-medium truncate">{server.name || server.url}</span>
                             <Badge variant={server.active ? "default" : "secondary"}>
                               {server.active ? 'Active' : 'Inactive'}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground truncate mt-1">
-                            {server.url}
-                          </p>
+                          {server.name && (
+                            <p className="text-sm text-muted-foreground truncate mt-1">
+                              {server.url}
+                            </p>
+                          )}
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
