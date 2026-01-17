@@ -29,6 +29,22 @@ const USDC_ADDRESSES: Record<string, Address> = {
   'base-sepolia': '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
 };
 
+/**
+ * Normalize network identifier to simple format used by refund wallets
+ * e.g., 'eip155:8453' -> 'base', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp' -> 'solana'
+ */
+function normalizeNetwork(network: string): string {
+  // CAIP-2 EVM networks
+  if (network === 'eip155:8453') return 'base';
+  if (network === 'eip155:84532') return 'base-sepolia';
+
+  // CAIP-2 Solana
+  if (network.startsWith('solana:')) return 'solana';
+
+  // Already simple format
+  return network;
+}
+
 const TRANSFER_ABI = [
   {
     inputs: [
@@ -98,10 +114,13 @@ export async function reportFailure(params: ReportFailureParams): Promise<Report
     return { success: false, error: 'Claim already exists for this transaction' };
   }
 
+  // Normalize network identifier (e.g., 'eip155:8453' -> 'base')
+  const normalizedNetwork = normalizeNetwork(network);
+
   // Check if refund wallet exists for this network (scoped to resource owner)
-  const refundWallet = getRefundWallet(server.resource_owner_id, network);
+  const refundWallet = getRefundWallet(server.resource_owner_id, normalizedNetwork);
   if (!refundWallet) {
-    return { success: false, error: `No refund wallet configured for network: ${network}` };
+    return { success: false, error: `No refund wallet configured for network: ${normalizedNetwork}` };
   }
 
   // Create the claim
@@ -113,7 +132,7 @@ export async function reportFailure(params: ReportFailureParams): Promise<Report
       user_wallet: userWallet,
       amount,
       asset,
-      network,
+      network: normalizedNetwork,
       reason,
     });
 
