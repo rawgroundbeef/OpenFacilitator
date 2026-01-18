@@ -301,13 +301,30 @@ export function honoRefundMiddleware(config: HonoRefundConfig) {
  */
 export function createPaymentContext(
   settleResponse: { transaction: string; payer: string; network: string },
-  paymentPayload: { payload: { authorization: { amount: string; asset: string } } }
+  paymentPayload: Record<string, unknown>,
+  requirements?: { maxAmountRequired?: string; asset?: string }
 ): PaymentContext {
+  // Try to extract amount from various payload structures
+  const payload = paymentPayload.payload as Record<string, unknown> | undefined;
+  const authorization = payload?.authorization as Record<string, unknown> | undefined;
+
+  // Amount: try payload.authorization.amount, then fall back to requirements
+  const amount = (authorization?.amount as string) ||
+                 (payload?.amount as string) ||
+                 requirements?.maxAmountRequired ||
+                 '0';
+
+  // Asset: try payload.authorization.asset, then fall back to requirements
+  const asset = (authorization?.asset as string) ||
+                (payload?.asset as string) ||
+                requirements?.asset ||
+                '';
+
   return {
     transactionHash: settleResponse.transaction,
     userWallet: settleResponse.payer,
-    amount: paymentPayload.payload.authorization.amount,
-    asset: paymentPayload.payload.authorization.asset,
+    amount,
+    asset,
     network: settleResponse.network,
   };
 }
@@ -453,7 +470,7 @@ export function createPaymentMiddleware(config: PaymentMiddlewareConfig) {
       }
 
       // Create payment context
-      const paymentContext = createPaymentContext(settleResult, paymentPayload);
+      const paymentContext = createPaymentContext(settleResult, paymentPayload as unknown as Record<string, unknown>, requirements);
 
       // Attach to request and res.locals
       req.paymentContext = paymentContext;
@@ -632,7 +649,7 @@ export function honoPaymentMiddleware(config: HonoPaymentConfig) {
     }
 
     // Create and attach payment context
-    const paymentContext = createPaymentContext(settleResult, paymentPayload);
+    const paymentContext = createPaymentContext(settleResult, paymentPayload as unknown as Record<string, unknown>, requirements);
     c.set('paymentContext', paymentContext);
 
     // Handle with optional refund protection
