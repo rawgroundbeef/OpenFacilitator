@@ -62,10 +62,11 @@ Plans:
   2. User can verify Solana address ownership via message signature
   3. Unverified addresses are stored but marked as pending verification
   4. New/existing Better Auth users complete rewards enrollment by adding verified address
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Solana address registration and signature verification
+- [ ] 03-01-PLAN.md — Backend signature verification + Solana wallet adapter setup
+- [ ] 03-02-PLAN.md — Enrollment modal, address list UI, complete flow
 
 ### Phase 4: EVM Address Management
 **Goal**: Users can register and prove ownership of EVM pay-to addresses
@@ -199,7 +200,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 |-------|----------------|--------|-----------|
 | 1. Database Foundation | 1/1 | Complete | 2026-01-19 |
 | 2. Auth Integration | 2/2 | Complete | 2026-01-19 |
-| 3. Solana Address Management | 0/1 | Not started | - |
+| 3. Solana Address Management | 0/2 | Not started | - |
 | 4. EVM Address Management | 0/1 | Not started | - |
 | 5. Address UI | 0/2 | Not started | - |
 | 6. Volume Tracking Engine | 0/1 | Not started | - |
