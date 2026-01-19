@@ -576,6 +576,76 @@ export function initializeDatabase(dbPath?: string): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_claims_resource_owner ON claims(resource_owner_id);
     CREATE INDEX IF NOT EXISTS idx_claims_user_wallet ON claims(user_wallet);
     CREATE INDEX IF NOT EXISTS idx_claims_status ON claims(status);
+
+    -- Reward addresses table (user pay-to addresses for volume tracking)
+    CREATE TABLE IF NOT EXISTS reward_addresses (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+      chain_type TEXT NOT NULL CHECK (chain_type IN ('solana', 'evm')),
+      address TEXT NOT NULL,
+      verification_status TEXT NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified')),
+      verified_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, address)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reward_addresses_user ON reward_addresses(user_id);
+    CREATE INDEX IF NOT EXISTS idx_reward_addresses_address ON reward_addresses(address);
+    CREATE INDEX IF NOT EXISTS idx_reward_addresses_chain ON reward_addresses(chain_type);
+
+    -- Campaigns table (reward campaign configuration)
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      pool_amount TEXT NOT NULL,
+      threshold_amount TEXT NOT NULL,
+      multiplier_facilitator REAL NOT NULL DEFAULT 2.0,
+      starts_at TEXT NOT NULL,
+      ends_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'ended')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
+    CREATE INDEX IF NOT EXISTS idx_campaigns_dates ON campaigns(starts_at, ends_at);
+
+    -- Reward claims table (user claims against campaigns)
+    CREATE TABLE IF NOT EXISTS reward_claims (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+      campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      volume_amount TEXT NOT NULL,
+      base_reward_amount TEXT NOT NULL,
+      multiplier REAL NOT NULL DEFAULT 1.0,
+      final_reward_amount TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+      claim_wallet TEXT,
+      tx_signature TEXT,
+      claimed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, campaign_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_reward_claims_user ON reward_claims(user_id);
+    CREATE INDEX IF NOT EXISTS idx_reward_claims_campaign ON reward_claims(campaign_id);
+    CREATE INDEX IF NOT EXISTS idx_reward_claims_status ON reward_claims(status);
+
+    -- Volume snapshots table (daily aggregated volume per address)
+    CREATE TABLE IF NOT EXISTS volume_snapshots (
+      id TEXT PRIMARY KEY,
+      reward_address_id TEXT NOT NULL REFERENCES reward_addresses(id) ON DELETE CASCADE,
+      campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      snapshot_date TEXT NOT NULL,
+      volume TEXT NOT NULL,
+      unique_payers INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(reward_address_id, campaign_id, snapshot_date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_volume_snapshots_address ON volume_snapshots(reward_address_id);
+    CREATE INDEX IF NOT EXISTS idx_volume_snapshots_campaign ON volume_snapshots(campaign_id);
+    CREATE INDEX IF NOT EXISTS idx_volume_snapshots_date ON volume_snapshots(snapshot_date);
   `);
 
   // Run migrations for schema updates

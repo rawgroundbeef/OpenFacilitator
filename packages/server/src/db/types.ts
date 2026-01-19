@@ -275,3 +275,67 @@ export interface ClaimRecord {
   expires_at: string | null;
 }
 
+/**
+ * Reward address database record
+ * Pay-to addresses tracked for volume rewards
+ */
+export interface RewardAddressRecord {
+  id: string;
+  user_id: string;
+  chain_type: 'solana' | 'evm';
+  address: string;
+  verification_status: 'pending' | 'verified';
+  verified_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Campaign database record
+ * Reward campaign configuration
+ */
+export interface CampaignRecord {
+  id: string;
+  name: string;
+  pool_amount: string;
+  threshold_amount: string;
+  multiplier_facilitator: number;
+  starts_at: string;
+  ends_at: string;
+  status: 'draft' | 'active' | 'ended';
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Reward claim database record
+ * Tracks user claims against campaigns
+ */
+export interface RewardClaimRecord {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  volume_amount: string;
+  base_reward_amount: string;
+  multiplier: number;
+  final_reward_amount: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  claim_wallet: string | null;
+  tx_signature: string | null;
+  claimed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Volume snapshot database record
+ * Daily aggregated volume per reward address per campaign
+ */
+export interface VolumeSnapshotRecord {
+  id: string;
+  reward_address_id: string;
+  campaign_id: string;
+  snapshot_date: string;
+  volume: string;
+  unique_payers: number;
+  created_at: string;
+}
+
