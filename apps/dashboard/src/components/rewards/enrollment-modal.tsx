@@ -11,9 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useAccount, useConnect, useSignMessage, useDisconnect as useEVMDisconnect, useConnectors } from 'wagmi';
 import { signAndEnroll } from '@/lib/solana/verification';
+import { signAndEnrollEVM } from '@/lib/evm/verification';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Loader2, CheckCircle, AlertCircle, Wallet } from 'lucide-react';
+
+type ChainType = 'solana' | 'evm';
 
 interface EnrollmentModalProps {
   open: boolean;
@@ -25,19 +29,35 @@ type Status = 'idle' | 'connecting' | 'signing' | 'success' | 'error';
 export function EnrollmentModal({ open, onOpenChange }: EnrollmentModalProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [chainType, setChainType] = useState<ChainType>('solana');
 
+  // Solana wallet hooks
   const wallet = useWallet();
   const { publicKey, connected, disconnect } = wallet;
   const { setVisible } = useWalletModal();
   const { refetchRewardsStatus } = useAuth();
 
-  // Handle wallet connection and automatic signing
+  // EVM wallet hooks
+  const { address: evmAddress, isConnected: evmConnected } = useAccount();
+  const { connect: evmConnect } = useConnect();
+  const { signMessageAsync } = useSignMessage();
+  const { disconnect: evmDisconnect } = useEVMDisconnect();
+  const connectors = useConnectors();
+
+  // Handle Solana wallet connection and automatic signing
   useEffect(() => {
-    if (status === 'connecting' && connected && publicKey) {
+    if (status === 'connecting' && chainType === 'solana' && connected && publicKey) {
       // Wallet connected, proceed to signing
       handleSign();
     }
-  }, [connected, publicKey, status]);
+  }, [connected, publicKey, status, chainType]);
+
+  // Handle EVM wallet connection and automatic signing
+  useEffect(() => {
+    if (status === 'connecting' && chainType === 'evm' && evmConnected && evmAddress) {
+      handleEVMSign();
+    }
+  }, [evmConnected, evmAddress, status, chainType]);
 
   const handleConnect = useCallback(() => {
     setStatus('connecting');
@@ -60,26 +80,45 @@ export function EnrollmentModal({ open, onOpenChange }: EnrollmentModalProps) {
     }
   }, [wallet, refetchRewardsStatus]);
 
+  const handleEVMSign = useCallback(async () => {
+    if (!evmAddress) return;
+    setStatus('signing');
+    setErrorMessage(null);
+
+    const result = await signAndEnrollEVM(signMessageAsync, evmAddress);
+
+    if (result.success) {
+      await refetchRewardsStatus();
+      setStatus('success');
+    } else {
+      setErrorMessage(result.error || 'Failed to verify address');
+      setStatus('error');
+    }
+  }, [evmAddress, signMessageAsync, refetchRewardsStatus]);
+
   const handleTryAgain = useCallback(() => {
     setStatus('idle');
     setErrorMessage(null);
     disconnect();
-  }, [disconnect]);
+    evmDisconnect();
+  }, [disconnect, evmDisconnect]);
 
   const handleAddAnother = useCallback(() => {
     setStatus('idle');
     setErrorMessage(null);
     disconnect();
-  }, [disconnect]);
+    evmDisconnect();
+  }, [disconnect, evmDisconnect]);
 
   const handleClose = useCallback((newOpen: boolean) => {
     if (!newOpen) {
       setStatus('idle');
       setErrorMessage(null);
       disconnect();
+      evmDisconnect();
     }
     onOpenChange(newOpen);
-  }, [onOpenChange, disconnect]);
+  }, [onOpenChange, disconnect, evmDisconnect]);
 
   const handleDone = useCallback(() => {
     handleClose(false);
@@ -98,16 +137,58 @@ export function EnrollmentModal({ open, onOpenChange }: EnrollmentModalProps) {
         <div className="flex flex-col items-center py-6">
           {status === 'idle' && (
             <>
+              {/* Chain selector */}
+              <div className="flex gap-2 mb-6 w-full">
+                <Button
+                  variant={chainType === 'solana' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setChainType('solana')}
+                  className="flex-1"
+                >
+                  Solana
+                </Button>
+                <Button
+                  variant={chainType === 'evm' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setChainType('evm')}
+                  className="flex-1"
+                >
+                  EVM
+                </Button>
+              </div>
+
               <div className="mb-6 p-4 rounded-full bg-primary/10">
                 <Wallet className="h-8 w-8 text-primary" />
               </div>
               <p className="text-center text-sm text-muted-foreground mb-6">
                 Connect your pay-to wallet and sign a message to verify ownership.
-                This will not cost any SOL.
+                {chainType === 'solana' ? ' This will not cost any SOL.' : ' This will not cost any ETH.'}
               </p>
-              <Button onClick={handleConnect} className="w-full">
-                Connect Wallet
-              </Button>
+
+              {/* Solana wallet connect */}
+              {chainType === 'solana' && (
+                <Button onClick={handleConnect} className="w-full">
+                  Connect Wallet
+                </Button>
+              )}
+
+              {/* EVM wallet connectors */}
+              {chainType === 'evm' && (
+                <div className="flex flex-col gap-2 w-full">
+                  {connectors.map((connector) => (
+                    <Button
+                      key={connector.uid}
+                      variant="outline"
+                      onClick={() => {
+                        setStatus('connecting');
+                        evmConnect({ connector });
+                      }}
+                    >
+                      {connector.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
