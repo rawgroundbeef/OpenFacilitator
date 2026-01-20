@@ -1,7 +1,14 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Wallet, X, Loader2, CheckCircle, Clock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Wallet, Loader2, CheckCircle, Clock, MoreVertical, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AddressCardProps {
   address: {
@@ -12,10 +19,26 @@ interface AddressCardProps {
     created_at: string;
   };
   onRemove?: (id: string) => void;
+  onVerify?: (address: string) => void;
   isRemoving?: boolean;
 }
 
-export function AddressCard({ address, onRemove, isRemoving }: AddressCardProps) {
+function ChainBadge({ chainType }: { chainType: 'solana' | 'evm' }) {
+  if (chainType === 'solana') {
+    return (
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-[10px] font-bold">
+        S
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold">
+      E
+    </span>
+  );
+}
+
+export function AddressCard({ address, onRemove, onVerify, isRemoving }: AddressCardProps) {
   // Truncate address: first 6...last 4 chars
   const truncatedAddress = `${address.address.slice(0, 6)}...${address.address.slice(-4)}`;
 
@@ -27,14 +50,25 @@ export function AddressCard({ address, onRemove, isRemoving }: AddressCardProps)
   });
 
   const isVerified = address.verification_status === 'verified';
+  const chainLabel = address.chain_type === 'solana' ? 'Solana' : 'Ethereum';
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+    <div
+      className={cn(
+        'flex items-center justify-between p-3 rounded-lg border border-border bg-card',
+        !isVerified && 'opacity-70'
+      )}
+    >
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-full bg-primary/10">
-          <Wallet className="h-4 w-4 text-primary" />
+        <div className="relative">
+          <div className="p-2 rounded-full bg-primary/10">
+            <Wallet className="h-4 w-4 text-primary" />
+          </div>
+          <div className="absolute -bottom-1 -right-1">
+            <ChainBadge chainType={address.chain_type} />
+          </div>
         </div>
-        <div>
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm">{truncatedAddress}</span>
             {isVerified ? (
@@ -49,27 +83,60 @@ export function AddressCard({ address, onRemove, isRemoving }: AddressCardProps)
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Added {dateAdded}
-          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{chainLabel}</span>
+            <span>-</span>
+            <span>Added {dateAdded}</span>
+          </div>
+          {!isVerified && (
+            <p className="text-xs text-yellow-600 dark:text-yellow-500">
+              Rewards won't track until verified
+            </p>
+          )}
         </div>
       </div>
 
-      {onRemove && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          onClick={() => onRemove(address.id)}
-          disabled={isRemoving}
-        >
-          {isRemoving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <X className="h-4 w-4" />
-          )}
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {!isVerified && onVerify && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => onVerify(address.address)}
+          >
+            Verify
+          </Button>
+        )}
+
+        {onRemove && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                disabled={isRemoving}
+              >
+                {isRemoving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MoreVertical className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive cursor-pointer"
+                onClick={() => onRemove(address.id)}
+                disabled={isRemoving}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </div>
   );
 }
