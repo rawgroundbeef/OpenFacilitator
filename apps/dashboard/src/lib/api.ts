@@ -1249,6 +1249,18 @@ class ApiClient {
   async getCampaignStats(id: string): Promise<CampaignStats> {
     return this.request(`/api/rewards/campaigns/${id}/stats`);
   }
+
+  async getRewardsVolume(campaignId: string): Promise<{
+    userId: string;
+    campaignId: string;
+    totalVolume: string;
+    uniquePayers: number;
+    snapshotVolume: string;
+    liveVolume: string;
+    lastSnapshotDate: string | null;
+  }> {
+    return this.request(`/api/rewards/volume?campaignId=${campaignId}`);
+  }
 }
 
 export const api = new ApiClient(API_BASE);
