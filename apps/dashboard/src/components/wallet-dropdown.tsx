@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Copy, Check, ExternalLink, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Copy, Check, ExternalLink, LogOut, LayoutDashboard, ChevronDown, Trophy } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -18,7 +18,7 @@ export function WalletDropdown() {
   const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, signOut, hasClaimable } = useAuth();
 
   const { data: wallet, isLoading, error } = useQuery({
     queryKey: ['billingWallet'],
@@ -96,6 +96,21 @@ export function WalletDropdown() {
             </div>
           </>
         )}
+
+        {/* Rewards Link */}
+        <div className="border-t border-border" />
+        <div className="p-2">
+          <Link
+            href="/rewards"
+            className="flex items-center gap-2 w-full px-3 py-2.5 text-sm rounded-md hover:bg-muted/50 transition-colors relative"
+          >
+            <Trophy className="w-4 h-4 shrink-0" />
+            Rewards
+            {hasClaimable && (
+              <span className="absolute right-3 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            )}
+          </Link>
+        </div>
 
         {/* Billing Wallet Section */}
         <div className="border-t border-border" />
