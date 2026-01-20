@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CampaignRules } from '@/components/campaigns/campaign-rules';
+import { ProgressDashboard } from '@/components/rewards/progress-dashboard';
 import { CampaignHistory } from '@/components/campaigns/campaign-history';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -22,6 +22,12 @@ export default function RewardsPage() {
   const { data: volumeData, isLoading: volumeLoading } = useQuery({
     queryKey: ['rewardsVolume', activeCampaign?.campaign?.id],
     queryFn: () => api.getRewardsVolume(activeCampaign!.campaign!.id),
+    enabled: !!activeCampaign?.campaign?.id,
+  });
+
+  const { data: breakdownData } = useQuery({
+    queryKey: ['volumeBreakdown', activeCampaign?.campaign?.id],
+    queryFn: () => api.getVolumeBreakdown(activeCampaign!.campaign!.id),
     enabled: !!activeCampaign?.campaign?.id,
   });
 
@@ -66,11 +72,12 @@ export default function RewardsPage() {
           <div className="space-y-8">
             {/* Active Campaign */}
             {activeCampaign?.campaign ? (
-              <CampaignRules
+              <ProgressDashboard
                 campaign={activeCampaign.campaign}
                 userVolume={volumeLoading ? '0' : (volumeData?.totalVolume ?? '0')}
                 totalPoolVolume={activeCampaign.totalVolume}
                 isFacilitatorOwner={isFacilitatorOwner}
+                volumeBreakdown={breakdownData ?? null}
               />
             ) : (
               <Card>
