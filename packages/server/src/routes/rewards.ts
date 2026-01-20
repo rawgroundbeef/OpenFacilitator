@@ -39,6 +39,9 @@ import {
 import {
   getRewardClaimsByUser,
   getRewardClaimsByCampaign,
+  getRewardClaimById,
+  updateRewardClaim,
+  getRewardClaimByUserAndCampaign,
 } from '../db/reward-claims.js';
 import { getDatabase } from '../db/index.js';
 
@@ -965,6 +968,131 @@ router.delete('/campaigns/:id', requireAuth, async (req: Request, res: Response)
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to delete campaign',
+    });
+  }
+});
+
+// ============================================================================
+// Claim Routes
+// ============================================================================
+
+/**
+ * Validate Solana address format (basic check)
+ * Base58 characters, 32-44 chars typical for Solana addresses
+ */
+function isValidSolanaAddress(address: string): boolean {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+}
+
+// Validation schema for initiate claim
+const initiateClaimSchema = z.object({
+  claim_wallet: z.string().min(1, 'Claim wallet is required'),
+});
+
+/**
+ * POST /claims/:id/initiate
+ * Initiate a pending claim by providing the wallet address to receive tokens
+ */
+router.post('/claims/:id/initiate', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const claimId = req.params.id;
+
+    // Validate request body
+    const parseResult = initiateClaimSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: parseResult.error.errors[0]?.message || 'Invalid request body',
+      });
+      return;
+    }
+
+    const { claim_wallet } = parseResult.data;
+
+    // Validate Solana address format
+    if (!isValidSolanaAddress(claim_wallet)) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: 'Invalid Solana address format',
+      });
+      return;
+    }
+
+    // Get the claim
+    const claim = getRewardClaimById(claimId);
+    if (!claim) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Claim not found',
+      });
+      return;
+    }
+
+    // Verify ownership - claim must belong to authenticated user
+    if (claim.user_id !== userId) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'You can only initiate your own claims',
+      });
+      return;
+    }
+
+    // Verify claim status is 'pending'
+    if (claim.status !== 'pending') {
+      res.status(400).json({
+        error: 'Invalid status',
+        message: `Cannot initiate claim with status '${claim.status}'. Only pending claims can be initiated.`,
+      });
+      return;
+    }
+
+    // Update claim with wallet address and set status to 'processing'
+    const updated = updateRewardClaim(claimId, {
+      claim_wallet,
+      status: 'processing',
+    });
+
+    if (!updated) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to update claim',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      claim: updated,
+    });
+  } catch (error) {
+    console.error('Error initiating claim:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to initiate claim',
+    });
+  }
+});
+
+/**
+ * GET /campaigns/:id/my-claim
+ * Get the current user's claim for a specific campaign
+ */
+router.get('/campaigns/:id/my-claim', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    const claim = getRewardClaimByUserAndCampaign(userId, campaignId);
+
+    res.json({
+      claim: claim || null,
+    });
+  } catch (error) {
+    console.error('Error getting user claim:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to get user claim',
     });
   }
 });

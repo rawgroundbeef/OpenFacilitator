@@ -84,6 +84,21 @@ export interface CampaignHistoryItem {
   claimed: boolean;
 }
 
+export interface RewardClaim {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  volume_amount: string;
+  base_reward_amount: string;
+  multiplier: number;
+  final_reward_amount: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  claim_wallet: string | null;
+  tx_signature: string | null;
+  claimed_at: string | null;
+  created_at: string;
+}
+
 export interface CreateCampaignRequest {
   name: string;
   pool_amount: string;
@@ -1277,6 +1292,25 @@ class ApiClient {
 
   async getVolumeBreakdown(campaignId: string): Promise<VolumeBreakdown> {
     return this.request(`/api/rewards/volume/breakdown?campaignId=${campaignId}`);
+  }
+
+  // Claim endpoints
+  async initiateClaim(
+    claimId: string,
+    claimWallet: string
+  ): Promise<{
+    success: boolean;
+    claim?: RewardClaim;
+    error?: string;
+  }> {
+    return this.request(`/api/rewards/claims/${claimId}/initiate`, {
+      method: 'POST',
+      body: JSON.stringify({ claim_wallet: claimWallet }),
+    });
+  }
+
+  async getMyClaim(campaignId: string): Promise<{ claim: RewardClaim | null }> {
+    return this.request(`/api/rewards/campaigns/${campaignId}/my-claim`);
   }
 }
 
