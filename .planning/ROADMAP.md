@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Campaign System** - Campaign CRUD, rules definition, time bounds
 - [x] **Phase 8: Rewards Dashboard** - Progress display, threshold tracking, estimates
 - [x] **Phase 9: Wallet Connection** - Connect claiming wallets (Solana/EVM) for token receipt
-- [ ] **Phase 10: Claims Engine** - Token distribution, SPL transfers, claim history
+- [x] **Phase 10: Claims Engine** - Token distribution, SPL transfers, claim history
 - [ ] **Phase 11: Dashboard Integration** - Landing page, navigation, polished UI flows
 
 ## Phase Details
@@ -169,9 +169,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Claim eligibility service, reward calculation, eligibility API endpoint
-- [ ] 10-02-PLAN.md — SPL token transfer service, execute claim endpoint, status updates
-- [ ] 10-03-PLAN.md — Confetti celebration, Twitter share, claim history display
+- [x] 10-01-PLAN.md — Claim eligibility service, reward calculation, eligibility API endpoint
+- [x] 10-02-PLAN.md — SPL token transfer service, execute claim endpoint, status updates
+- [x] 10-03-PLAN.md — Confetti celebration, Twitter share, claim history display
 
 ### Phase 11: Dashboard Integration
 **Goal**: Rewards program is seamlessly integrated into existing dashboard
@@ -206,7 +206,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Campaign System | 2/2 | Complete | 2026-01-20 |
 | 8. Rewards Dashboard | 1/1 | Complete | 2026-01-20 |
 | 9. Wallet Connection | 1/1 | Complete | 2026-01-20 |
-| 10. Claims Engine | 0/3 | Not started | - |
+| 10. Claims Engine | 3/3 | Complete | 2026-01-20 |
 | 11. Dashboard Integration | 0/3 | Not started | - |
 
 ---
