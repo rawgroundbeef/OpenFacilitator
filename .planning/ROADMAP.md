@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Volume Tracking Engine** - Aggregate volume from transactions, exclude self-transfers
 - [x] **Phase 7: Campaign System** - Campaign CRUD, rules definition, time bounds
 - [x] **Phase 8: Rewards Dashboard** - Progress display, threshold tracking, estimates
-- [ ] **Phase 9: Wallet Connection** - Connect claiming wallets (Solana/EVM) for token receipt
+- [x] **Phase 9: Wallet Connection** - Connect claiming wallets (Solana/EVM) for token receipt
 - [ ] **Phase 10: Claims Engine** - Token distribution, SPL transfers, claim history
 - [ ] **Phase 11: Dashboard Integration** - Landing page, navigation, polished UI flows
 
@@ -153,7 +153,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — ClaimModal, ClaimButton, initiateClaim API endpoint
+- [x] 09-01-PLAN.md — ClaimModal, ClaimButton, initiateClaim API endpoint
 
 ### Phase 10: Claims Engine
 **Goal**: Users can claim earned $OPEN tokens when eligible
@@ -205,7 +205,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Volume Tracking Engine | 1/1 | Complete | 2026-01-20 |
 | 7. Campaign System | 2/2 | Complete | 2026-01-20 |
 | 8. Rewards Dashboard | 1/1 | Complete | 2026-01-20 |
-| 9. Wallet Connection | 0/1 | Not started | - |
+| 9. Wallet Connection | 1/1 | Complete | 2026-01-20 |
 | 10. Claims Engine | 0/3 | Not started | - |
 | 11. Dashboard Integration | 0/3 | Not started | - |
 

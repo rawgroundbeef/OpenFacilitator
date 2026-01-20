@@ -106,8 +106,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | AUTH-01 | Phase 3 | Complete |
 | AUTH-02 | Phase 3 | Complete |
-| AUTH-03 | Phase 9 | Pending |
-| AUTH-04 | Phase 9 | Pending |
+| AUTH-03 | Phase 9 | Complete |
+| AUTH-04 | Phase 4 | Complete |
 | AUTH-05 | Phase 2 | Complete |
 | ADDR-01 | Phase 3 | Complete |
 | ADDR-02 | Phase 4 | Complete |
@@ -148,4 +148,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-19*
-*Last updated: 2026-01-20 after Phase 8 completion*
+*Last updated: 2026-01-20 after Phase 9 completion*
