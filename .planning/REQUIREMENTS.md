@@ -116,9 +116,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADDR-05 | Phase 5 | Complete |
 | ADDR-06 | Phase 5 | Complete |
 | ADDR-07 | Phase 5 | Complete |
-| VOL-01 | Phase 6 | Pending |
-| VOL-02 | Phase 6 | Pending |
-| VOL-03 | Phase 6 | Pending |
+| VOL-01 | Phase 6 | Complete |
+| VOL-02 | Phase 6 | Complete |
+| VOL-03 | Phase 6 | Complete |
 | VOL-04 | Phase 8 | Pending |
 | VOL-05 | Phase 8 | Pending |
 | VOL-06 | Phase 8 | Pending |
@@ -148,4 +148,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-19*
-*Last updated: 2026-01-19 after roadmap creation*
+*Last updated: 2026-01-20 after Phase 6 completion*
