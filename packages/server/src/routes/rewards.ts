@@ -21,6 +21,26 @@ import {
   createEVMVerificationMessage,
 } from '../utils/evm-verify.js';
 import { createDailySnapshots, getUserTotalVolume } from '../db/volume-aggregation.js';
+import {
+  createCampaign,
+  getCampaignById,
+  getAllCampaigns,
+  getCampaignsByStatus,
+  getPublishedCampaign,
+  getCompletedCampaigns,
+  updateCampaign,
+  deleteCampaign,
+  type CampaignStatus,
+} from '../db/campaigns.js';
+import {
+  createCampaignAudit,
+  getCampaignAuditHistory,
+} from '../db/campaign-audit.js';
+import {
+  getRewardClaimsByUser,
+  getRewardClaimsByCampaign,
+} from '../db/reward-claims.js';
+import { getDatabase } from '../db/index.js';
 
 const router: IRouter = Router();
 
@@ -299,6 +319,622 @@ router.get('/volume', requireAuth, async (req: Request, res: Response) => {
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to get volume data',
+    });
+  }
+});
+
+// ============================================================================
+// Campaign API Routes
+// ============================================================================
+
+// Validation schemas for campaigns
+const createCampaignSchema = z.object({
+  name: z.string().min(1).max(100),
+  pool_amount: z.string().regex(/^\d+$/, 'Must be numeric string'),
+  threshold_amount: z.string().regex(/^\d+$/, 'Must be numeric string'),
+  multiplier_facilitator: z.number().min(1).max(10).optional(),
+  starts_at: z.string().datetime(),
+  ends_at: z.string().datetime(),
+});
+
+const updateCampaignSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  pool_amount: z.string().regex(/^\d+$/, 'Must be numeric string').optional(),
+  threshold_amount: z.string().regex(/^\d+$/, 'Must be numeric string').optional(),
+  multiplier_facilitator: z.number().min(1).max(10).optional(),
+  starts_at: z.string().datetime().optional(),
+  ends_at: z.string().datetime().optional(),
+});
+
+/**
+ * GET /campaigns/active
+ * Get current campaign for users (published or active)
+ * Public route (authenticated users only)
+ */
+router.get('/campaigns/active', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const campaign = getPublishedCampaign();
+
+    if (!campaign) {
+      res.json(null);
+      return;
+    }
+
+    // Calculate total qualifying volume for this campaign
+    const db = getDatabase();
+    const volumeStmt = db.prepare(`
+      SELECT
+        COALESCE(SUM(CAST(vs.volume AS INTEGER)), 0) as total_volume,
+        COUNT(DISTINCT ra.user_id) as participant_count
+      FROM volume_snapshots vs
+      JOIN reward_addresses ra ON vs.reward_address_id = ra.id
+      WHERE vs.campaign_id = ?
+    `);
+    const volumeData = volumeStmt.get(campaign.id) as {
+      total_volume: number;
+      participant_count: number;
+    };
+
+    res.json({
+      ...campaign,
+      totalQualifyingVolume: String(volumeData.total_volume),
+      participantCount: volumeData.participant_count,
+    });
+  } catch (error) {
+    console.error('Error getting active campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to get active campaign',
+    });
+  }
+});
+
+/**
+ * GET /campaigns/history
+ * Get user's campaign history with participation data
+ * Public route (authenticated users only)
+ */
+router.get('/campaigns/history', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Get all completed campaigns
+    const campaigns = getCompletedCampaigns();
+
+    // Get user's claims for context
+    const userClaims = getRewardClaimsByUser(userId);
+    const claimsByChunk = new Map(
+      userClaims.map(c => [c.campaign_id, c])
+    );
+
+    // Build history with user stats per campaign
+    const history = campaigns.map(campaign => {
+      const claim = claimsByChunk.get(campaign.id);
+      const volumeData = getUserTotalVolume(userId, campaign.id);
+
+      return {
+        campaign: {
+          id: campaign.id,
+          name: campaign.name,
+          pool_amount: campaign.pool_amount,
+          threshold_amount: campaign.threshold_amount,
+          multiplier_facilitator: campaign.multiplier_facilitator,
+          starts_at: campaign.starts_at,
+          ends_at: campaign.ends_at,
+          distributed_amount: campaign.distributed_amount,
+        },
+        userStats: {
+          volume: volumeData.total_volume,
+          uniquePayers: volumeData.unique_payers,
+          meetsThreshold: BigInt(volumeData.total_volume) >= BigInt(campaign.threshold_amount),
+          claim: claim ? {
+            status: claim.status,
+            rewardAmount: claim.final_reward_amount,
+            multiplier: claim.multiplier,
+            claimedAt: claim.claimed_at,
+          } : null,
+        },
+      };
+    });
+
+    res.json(history);
+  } catch (error) {
+    console.error('Error getting campaign history:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to get campaign history',
+    });
+  }
+});
+
+/**
+ * GET /campaigns/:id/stats
+ * Get campaign statistics
+ * Public route (authenticated users only)
+ */
+router.get('/campaigns/:id/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    const campaign = getCampaignById(campaignId);
+    if (!campaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    const db = getDatabase();
+
+    // Get total qualifying volume and participant count
+    const volumeStmt = db.prepare(`
+      SELECT
+        COALESCE(SUM(CAST(vs.volume AS INTEGER)), 0) as total_volume,
+        COUNT(DISTINCT ra.user_id) as participant_count
+      FROM volume_snapshots vs
+      JOIN reward_addresses ra ON vs.reward_address_id = ra.id
+      WHERE vs.campaign_id = ?
+    `);
+    const volumeData = volumeStmt.get(campaignId) as {
+      total_volume: number;
+      participant_count: number;
+    };
+
+    // Get user's volume and rank
+    const userVolume = getUserTotalVolume(userId, campaignId);
+
+    // Calculate user's rank (position among participants)
+    const rankStmt = db.prepare(`
+      SELECT COUNT(*) + 1 as rank
+      FROM (
+        SELECT ra.user_id, SUM(CAST(vs.volume AS INTEGER)) as total_vol
+        FROM volume_snapshots vs
+        JOIN reward_addresses ra ON vs.reward_address_id = ra.id
+        WHERE vs.campaign_id = ?
+        GROUP BY ra.user_id
+        HAVING total_vol > ?
+      )
+    `);
+    const rankData = rankStmt.get(campaignId, userVolume.total_volume) as { rank: number };
+
+    res.json({
+      campaignId,
+      totalQualifyingVolume: String(volumeData.total_volume),
+      participantCount: volumeData.participant_count,
+      userVolume: userVolume.total_volume,
+      userRank: rankData.rank,
+      userMeetsThreshold: BigInt(userVolume.total_volume) >= BigInt(campaign.threshold_amount),
+    });
+  } catch (error) {
+    console.error('Error getting campaign stats:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to get campaign stats',
+    });
+  }
+});
+
+// ============================================================================
+// Admin Campaign Routes (all require isAdmin check)
+// ============================================================================
+
+/**
+ * POST /campaigns
+ * Create a new draft campaign (Admin only)
+ */
+router.post('/campaigns', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    // Validate request body
+    const parseResult = createCampaignSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: parseResult.error.errors[0]?.message || 'Invalid request body',
+      });
+      return;
+    }
+
+    const { name, pool_amount, threshold_amount, multiplier_facilitator, starts_at, ends_at } = parseResult.data;
+
+    // Create campaign with status='draft'
+    const campaign = createCampaign({
+      name,
+      pool_amount,
+      threshold_amount,
+      multiplier_facilitator,
+      starts_at,
+      ends_at,
+    });
+
+    // Create audit record
+    createCampaignAudit({
+      campaign_id: campaign.id,
+      admin_user_id: userId,
+      action: 'create',
+      changes: { name, pool_amount, threshold_amount, multiplier_facilitator, starts_at, ends_at },
+    });
+
+    res.status(201).json(campaign);
+  } catch (error) {
+    console.error('Error creating campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to create campaign',
+    });
+  }
+});
+
+/**
+ * GET /campaigns
+ * List all campaigns (Admin only - sees all statuses)
+ */
+router.get('/campaigns', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    // Optional status filter
+    const statusFilter = req.query.status as CampaignStatus | undefined;
+
+    let campaigns;
+    if (statusFilter) {
+      campaigns = getCampaignsByStatus(statusFilter);
+    } else {
+      campaigns = getAllCampaigns();
+    }
+
+    res.json(campaigns);
+  } catch (error) {
+    console.error('Error listing campaigns:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to list campaigns',
+    });
+  }
+});
+
+/**
+ * GET /campaigns/:id
+ * Get campaign details with audit history (Admin only)
+ */
+router.get('/campaigns/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    const campaign = getCampaignById(campaignId);
+    if (!campaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    // Get audit history
+    const auditHistory = getCampaignAuditHistory(campaignId);
+
+    // Get claims for this campaign
+    const claims = getRewardClaimsByCampaign(campaignId);
+
+    res.json({
+      ...campaign,
+      auditHistory,
+      claimsCount: claims.length,
+    });
+  } catch (error) {
+    console.error('Error getting campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to get campaign',
+    });
+  }
+});
+
+/**
+ * PATCH /campaigns/:id
+ * Update campaign (Admin only, with audit logging)
+ */
+router.patch('/campaigns/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    // Validate request body
+    const parseResult = updateCampaignSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({
+        error: 'Validation error',
+        message: parseResult.error.errors[0]?.message || 'Invalid request body',
+      });
+      return;
+    }
+
+    // Get current campaign for comparison
+    const oldCampaign = getCampaignById(campaignId);
+    if (!oldCampaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    const updates = parseResult.data;
+
+    // Build changes object comparing old vs new
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+    if (updates.name !== undefined && updates.name !== oldCampaign.name) {
+      changes.name = { from: oldCampaign.name, to: updates.name };
+    }
+    if (updates.pool_amount !== undefined && updates.pool_amount !== oldCampaign.pool_amount) {
+      changes.pool_amount = { from: oldCampaign.pool_amount, to: updates.pool_amount };
+    }
+    if (updates.threshold_amount !== undefined && updates.threshold_amount !== oldCampaign.threshold_amount) {
+      changes.threshold_amount = { from: oldCampaign.threshold_amount, to: updates.threshold_amount };
+    }
+    if (updates.multiplier_facilitator !== undefined && updates.multiplier_facilitator !== oldCampaign.multiplier_facilitator) {
+      changes.multiplier_facilitator = { from: oldCampaign.multiplier_facilitator, to: updates.multiplier_facilitator };
+    }
+    if (updates.starts_at !== undefined && updates.starts_at !== oldCampaign.starts_at) {
+      changes.starts_at = { from: oldCampaign.starts_at, to: updates.starts_at };
+    }
+    if (updates.ends_at !== undefined && updates.ends_at !== oldCampaign.ends_at) {
+      changes.ends_at = { from: oldCampaign.ends_at, to: updates.ends_at };
+    }
+
+    // Only create audit and update if there are actual changes
+    if (Object.keys(changes).length > 0) {
+      const updated = updateCampaign(campaignId, updates);
+      if (!updated) {
+        res.status(500).json({
+          error: 'Internal server error',
+          message: 'Failed to update campaign',
+        });
+        return;
+      }
+
+      // Create audit record
+      createCampaignAudit({
+        campaign_id: campaignId,
+        admin_user_id: userId,
+        action: 'update',
+        changes,
+      });
+
+      res.json(updated);
+    } else {
+      res.json(oldCampaign);
+    }
+  } catch (error) {
+    console.error('Error updating campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to update campaign',
+    });
+  }
+});
+
+/**
+ * POST /campaigns/:id/publish
+ * Transition campaign from draft -> published (Admin only)
+ */
+router.post('/campaigns/:id/publish', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    const campaign = getCampaignById(campaignId);
+    if (!campaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    // Verify current status is 'draft'
+    if (campaign.status !== 'draft') {
+      res.status(400).json({
+        error: 'Invalid status',
+        message: `Cannot publish campaign with status '${campaign.status}'. Only draft campaigns can be published.`,
+      });
+      return;
+    }
+
+    // Update status to 'published'
+    const updated = updateCampaign(campaignId, { status: 'published' });
+    if (!updated) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to publish campaign',
+      });
+      return;
+    }
+
+    // Create audit record
+    createCampaignAudit({
+      campaign_id: campaignId,
+      admin_user_id: userId,
+      action: 'publish',
+      changes: { status: { from: 'draft', to: 'published' } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error publishing campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to publish campaign',
+    });
+  }
+});
+
+/**
+ * POST /campaigns/:id/end
+ * End campaign early (Admin only)
+ */
+router.post('/campaigns/:id/end', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    const campaign = getCampaignById(campaignId);
+    if (!campaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    // Verify status is 'active' or 'published'
+    if (campaign.status !== 'active' && campaign.status !== 'published') {
+      res.status(400).json({
+        error: 'Invalid status',
+        message: `Cannot end campaign with status '${campaign.status}'. Only active or published campaigns can be ended.`,
+      });
+      return;
+    }
+
+    const previousStatus = campaign.status;
+
+    // Update status to 'ended'
+    const updated = updateCampaign(campaignId, { status: 'ended' });
+    if (!updated) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to end campaign',
+      });
+      return;
+    }
+
+    // Create audit record
+    createCampaignAudit({
+      campaign_id: campaignId,
+      admin_user_id: userId,
+      action: 'end',
+      changes: { status: { from: previousStatus, to: 'ended' } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error ending campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to end campaign',
+    });
+  }
+});
+
+/**
+ * DELETE /campaigns/:id
+ * Delete draft campaign only (Admin only)
+ */
+router.delete('/campaigns/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const campaignId = req.params.id;
+
+    // Check admin permission
+    if (!isAdmin(userId)) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required',
+      });
+      return;
+    }
+
+    const campaign = getCampaignById(campaignId);
+    if (!campaign) {
+      res.status(404).json({
+        error: 'Not found',
+        message: 'Campaign not found',
+      });
+      return;
+    }
+
+    // Verify status is 'draft' (cannot delete published/active/ended)
+    if (campaign.status !== 'draft') {
+      res.status(400).json({
+        error: 'Invalid status',
+        message: `Cannot delete campaign with status '${campaign.status}'. Only draft campaigns can be deleted.`,
+      });
+      return;
+    }
+
+    const deleted = deleteCampaign(campaignId);
+    if (!deleted) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to delete campaign',
+      });
+      return;
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting campaign:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to delete campaign',
     });
   }
 });
