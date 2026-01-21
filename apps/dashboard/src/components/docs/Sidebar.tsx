@@ -24,6 +24,7 @@ const navigation: NavItem[] = [
       { title: 'Fee Payer', href: '/docs/sdk/fee-payer' },
       { title: 'Networks', href: '/docs/sdk/networks' },
       { title: 'Errors', href: '/docs/sdk/errors' },
+      { title: 'Refunds', href: '/docs/sdk/refunds' },
     ],
   },
   { title: 'HTTP API', href: '/docs/api' },
