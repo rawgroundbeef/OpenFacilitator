@@ -700,18 +700,19 @@ export async function initializeDatabase(dbPath?: string): Promise<Database.Data
 
   console.log('✅ Database initialized at', databasePath);
 
-  // Backfill missing facilitator enrollment markers
-  // Must run after tables are created and db is available
-  try {
-    // Import dynamically to avoid circular dependency issues
-    const { backfillFacilitatorMarkers } = await import('./facilitators.js');
-    const created = backfillFacilitatorMarkers();
-    if (created > 0) {
-      console.log(`[Facilitator Backfill] Created ${created} missing enrollment markers`);
+  // Backfill missing facilitator enrollment markers after server starts
+  // Deferred to avoid blocking healthcheck during startup
+  setTimeout(async () => {
+    try {
+      const { backfillFacilitatorMarkers } = await import('./facilitators.js');
+      const created = backfillFacilitatorMarkers();
+      if (created > 0) {
+        console.log(`[Facilitator Backfill] Created ${created} missing enrollment markers`);
+      }
+    } catch (error) {
+      console.error('[Facilitator Backfill] Error during backfill:', error);
     }
-  } catch (error) {
-    console.error('[Facilitator Backfill] Error during backfill:', error);
-  }
+  }, 1000); // Run 1 second after init to let server start first
 
   return db;
 }
