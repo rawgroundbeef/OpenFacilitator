@@ -5,8 +5,12 @@ export { OpenFacilitator, createDefaultFacilitator } from './client.js';
 export type {
   FacilitatorConfig,
   PaymentPayload,
+  PaymentPayloadV1,
+  PaymentPayloadV2,
   PaymentAuthorization,
   PaymentRequirements,
+  PaymentRequirementsV1,
+  PaymentRequirementsV2,
   VerifyResponse,
   SettleResponse,
   SupportedResponse,
@@ -37,7 +41,16 @@ export {
 } from './networks.js';
 
 // Utils
-export { isPaymentPayload } from './utils.js';
+export {
+  isPaymentPayload,
+  isPaymentPayloadV1,
+  isPaymentPayloadV2,
+  isPaymentRequirementsV1,
+  isPaymentRequirementsV2,
+  getSchemeNetwork,
+  getVersion,
+  assertNever,
+} from './utils.js';
 
 // Claims
 export {

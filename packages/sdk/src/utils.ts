@@ -90,3 +90,48 @@ export function isPaymentRequirementsV2(
   if (!value || typeof value !== 'object') return false;
   return 'amount' in value && !('maxAmountRequired' in value);
 }
+
+// ============ Extraction Utilities ============
+
+/**
+ * Extract scheme and network from PaymentPayload (version-agnostic).
+ * Both v1 and v2 have these fields at the top level.
+ */
+export function getSchemeNetwork(payload: PaymentPayload): {
+  scheme: string;
+  network: string;
+} {
+  return {
+    scheme: payload.scheme,
+    network: payload.network,
+  };
+}
+
+/**
+ * Get x402 version from PaymentPayload.
+ * Returns literal type 1 | 2 for exhaustiveness checking in switch statements.
+ */
+export function getVersion(payload: PaymentPayload): 1 | 2 {
+  return payload.x402Version;
+}
+
+// ============ Exhaustiveness Checking ============
+
+/**
+ * Exhaustiveness check for discriminated unions.
+ * TypeScript will error at compile time if not all union members are handled.
+ *
+ * @example
+ * function handlePayload(payload: PaymentPayload) {
+ *   switch (payload.x402Version) {
+ *     case 1: return handleV1(payload);
+ *     case 2: return handleV2(payload);
+ *     default: return assertNever(payload);
+ *   }
+ * }
+ */
+export function assertNever(value: never, message?: string): never {
+  throw new Error(
+    message ?? `Unhandled discriminated union member: ${JSON.stringify(value)}`
+  );
+}
