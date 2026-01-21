@@ -44,8 +44,8 @@ COPY --from=builder /app/packages/server/package.json ./packages/server/
 # Copy workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install production dependencies only (ignore-scripts skips husky prepare)
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
 
 # Create data directory with proper permissions
 RUN mkdir -p /data && chmod 755 /data
