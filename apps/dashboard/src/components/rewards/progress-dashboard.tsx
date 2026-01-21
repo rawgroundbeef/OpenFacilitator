@@ -18,6 +18,7 @@ interface ProgressDashboardProps {
   volumeBreakdown: VolumeBreakdown | null;
   claim: RewardClaim | null;
   onClaimSuccess?: () => void;
+  onEnrollClick?: () => void;
 }
 
 function formatUSDC(amount: string): string {
@@ -42,6 +43,7 @@ export function ProgressDashboard({
   volumeBreakdown,
   claim: initialClaim,
   onClaimSuccess,
+  onEnrollClick,
 }: ProgressDashboardProps) {
   const [claim, setClaim] = useState<RewardClaim | null>(initialClaim);
   const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
@@ -276,6 +278,7 @@ export function ProgressDashboard({
         <AddressBreakdown
           addresses={volumeBreakdown.addresses}
           totalVolume={volumeBreakdown.totalVolume}
+          onEnrollClick={onEnrollClick}
         />
       )}
     </div>

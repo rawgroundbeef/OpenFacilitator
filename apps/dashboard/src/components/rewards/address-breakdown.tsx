@@ -14,6 +14,7 @@ interface AddressBreakdownProps {
     uniquePayers: number;
   }>;
   totalVolume: string;
+  onEnrollClick?: () => void;
 }
 
 function ChainBadge({ chainType }: { chainType: 'solana' | 'evm' | 'facilitator' }) {
@@ -131,9 +132,11 @@ function FacilitatorsCard({
 function PayToAddressesCard({
   addresses,
   totalVolumeNum,
+  onEnrollClick,
 }: {
   addresses: AddressBreakdownProps['addresses'];
   totalVolumeNum: number;
+  onEnrollClick?: () => void;
 }) {
   return (
     <Card>
@@ -152,11 +155,9 @@ function PayToAddressesCard({
             <p className="text-sm text-muted-foreground mb-3">
               Register wallet addresses that receive payments through the free facilitator.
             </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/refunds/setup">
-                <Plus className="h-4 w-4 mr-1" />
-                Register Address
-              </Link>
+            <Button variant="outline" size="sm" onClick={onEnrollClick}>
+              <Plus className="h-4 w-4 mr-1" />
+              Register Address
             </Button>
           </div>
         ) : (
@@ -190,7 +191,7 @@ function PayToAddressesCard({
   );
 }
 
-export function AddressBreakdown({ addresses, totalVolume }: AddressBreakdownProps) {
+export function AddressBreakdown({ addresses, totalVolume, onEnrollClick }: AddressBreakdownProps) {
   const totalVolumeNum = Number(totalVolume);
 
   // Split addresses by type
@@ -200,7 +201,7 @@ export function AddressBreakdown({ addresses, totalVolume }: AddressBreakdownPro
   return (
     <div className="space-y-4">
       <FacilitatorsCard facilitators={facilitators} totalVolumeNum={totalVolumeNum} />
-      <PayToAddressesCard addresses={payToAddresses} totalVolumeNum={totalVolumeNum} />
+      <PayToAddressesCard addresses={payToAddresses} totalVolumeNum={totalVolumeNum} onEnrollClick={onEnrollClick} />
     </div>
   );
 }

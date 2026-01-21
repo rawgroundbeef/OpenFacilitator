@@ -379,3 +379,101 @@ export function getVolumeBreakdownByUser(
     addresses: result,
   };
 }
+
+/**
+ * Get total pool volume for a campaign (all enrolled users)
+ * Combines:
+ * 1. Snapshot volume (pre-computed daily totals)
+ * 2. Live delta (transactions since last snapshot for all enrolled addresses)
+ *
+ * @param campaignId - The campaign ID
+ * @returns Total pool volume and participant count
+ */
+export function getTotalPoolVolume(campaignId: string): {
+  total_volume: string;
+  participant_count: number;
+} {
+  const db = getDatabase();
+
+  // Get snapshot totals
+  const snapshotStmt = db.prepare(`
+    SELECT
+      COALESCE(SUM(CAST(vs.volume AS INTEGER)), 0) as snapshot_volume,
+      COUNT(DISTINCT ra.user_id) as participant_count
+    FROM volume_snapshots vs
+    JOIN reward_addresses ra ON vs.reward_address_id = ra.id
+    WHERE vs.campaign_id = ?
+  `);
+  const snapshotData = snapshotStmt.get(campaignId) as {
+    snapshot_volume: number;
+    participant_count: number;
+  };
+
+  // Get the most recent snapshot date for this campaign
+  const lastSnapshotStmt = db.prepare(`
+    SELECT MAX(snapshot_date) as last_date
+    FROM volume_snapshots
+    WHERE campaign_id = ?
+  `);
+  const lastSnapshotResult = lastSnapshotStmt.get(campaignId) as {
+    last_date: string | null;
+  };
+  const lastSnapshotDate = lastSnapshotResult.last_date || '1970-01-01';
+
+  // Get live volume from verified addresses (since last snapshot)
+  const liveAddressStmt = db.prepare(`
+    SELECT
+      COALESCE(SUM(CAST(t.amount AS INTEGER)), 0) as volume,
+      COUNT(DISTINCT ra.user_id) as new_participants
+    FROM transactions t
+    JOIN reward_addresses ra ON ra.address = t.to_address
+    WHERE ra.verification_status = 'verified'
+      AND ra.chain_type != 'facilitator'
+      AND t.type = 'settle'
+      AND t.status = 'success'
+      AND t.from_address != t.to_address
+      AND t.created_at > ?
+      AND t.created_at >= ra.created_at
+  `);
+  const liveAddressResult = liveAddressStmt.get(lastSnapshotDate) as {
+    volume: number;
+    new_participants: number;
+  };
+
+  // Get live volume from facilitator ownership (since last snapshot)
+  const liveFacilitatorStmt = db.prepare(`
+    SELECT
+      COALESCE(SUM(CAST(t.amount AS INTEGER)), 0) as volume
+    FROM transactions t
+    JOIN facilitators f ON f.id = t.facilitator_id
+    JOIN reward_addresses ra ON LOWER(ra.user_id) = f.owner_address
+    WHERE ra.verification_status = 'verified'
+      AND ra.chain_type = 'facilitator'
+      AND t.type = 'settle'
+      AND t.status = 'success'
+      AND t.from_address != t.to_address
+      AND t.created_at > ?
+      AND t.created_at >= ra.created_at
+  `);
+  const liveFacilitatorResult = liveFacilitatorStmt.get(lastSnapshotDate) as {
+    volume: number;
+  };
+
+  // Combine totals
+  const totalVolume =
+    BigInt(snapshotData.snapshot_volume) +
+    BigInt(liveAddressResult.volume) +
+    BigInt(liveFacilitatorResult.volume);
+
+  // Participant count: unique users from snapshots plus any new from live
+  // This is an approximation (we use snapshot count as base)
+  const participantCount = Math.max(
+    snapshotData.participant_count,
+    liveAddressResult.new_participants
+  );
+
+  return {
+    total_volume: totalVolume.toString(),
+    participant_count: participantCount,
+  };
+}

@@ -20,7 +20,7 @@ import {
   verifyEVMSignature,
   createEVMVerificationMessage,
 } from '../utils/evm-verify.js';
-import { createDailySnapshots, getUserTotalVolume, getVolumeBreakdownByUser } from '../db/volume-aggregation.js';
+import { createDailySnapshots, getUserTotalVolume, getVolumeBreakdownByUser, getTotalPoolVolume } from '../db/volume-aggregation.js';
 import {
   createCampaign,
   getCampaignById,
@@ -398,28 +398,16 @@ router.get('/campaigns/active', requireAuth, async (req: Request, res: Response)
       return;
     }
 
-    // Calculate total qualifying volume for this campaign
-    const db = getDatabase();
-    const volumeStmt = db.prepare(`
-      SELECT
-        COALESCE(SUM(CAST(vs.volume AS INTEGER)), 0) as total_volume,
-        COUNT(DISTINCT ra.user_id) as participant_count
-      FROM volume_snapshots vs
-      JOIN reward_addresses ra ON vs.reward_address_id = ra.id
-      WHERE vs.campaign_id = ?
-    `);
-    const volumeData = volumeStmt.get(campaign.id) as {
-      total_volume: number;
-      participant_count: number;
-    };
+    // Calculate total qualifying volume for this campaign (includes live transactions)
+    const volumeData = getTotalPoolVolume(campaign.id);
 
     res.json({
       campaign: {
         ...campaign,
-        totalQualifyingVolume: String(volumeData.total_volume),
+        totalQualifyingVolume: volumeData.total_volume,
         participantCount: volumeData.participant_count,
       },
-      totalVolume: String(volumeData.total_volume),
+      totalVolume: volumeData.total_volume,
     });
   } catch (error) {
     console.error('Error getting active campaign:', error);

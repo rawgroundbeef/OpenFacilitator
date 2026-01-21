@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProgressTab } from './progress-tab';
 import { AddressesTab } from './addresses-tab';
-import { HistoryTab } from './history-tab';
 import { useAuth } from '@/components/auth/auth-provider';
 
 export function RewardsDashboard() {
@@ -18,8 +17,8 @@ export function RewardsDashboard() {
   // Facilitator owners don't need addresses tab - their volume is tracked automatically
   const showAddressesTab = !isFacilitatorOwner;
   const validTabs = showAddressesTab
-    ? ['progress', 'addresses', 'history']
-    : ['progress', 'history'];
+    ? ['progress', 'addresses']
+    : ['progress'];
 
   // Read tab from URL or default to 'progress'
   const tabParam = searchParams.get('tab');
@@ -41,7 +40,16 @@ export function RewardsDashboard() {
             Rewards
           </h1>
           <p className="text-muted-foreground mt-2">
-            Earn $OPEN tokens by processing volume through OpenFacilitator.
+            Earn{' '}
+            <a
+              href="https://www.coingecko.com/en/coins/openfacilitator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              $OPEN
+            </a>
+            {' '}by processing your application's x402 payments with OpenFacilitator.
           </p>
         </div>
         {isAdmin && (
@@ -56,10 +64,9 @@ export function RewardsDashboard() {
 
       {/* Tabbed Content */}
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList className={`grid w-full ${showAddressesTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <TabsList className={`grid w-full ${showAddressesTab ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <TabsTrigger value="progress">Progress</TabsTrigger>
           {showAddressesTab && <TabsTrigger value="addresses">Addresses</TabsTrigger>}
-          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="progress" className="mt-6">
@@ -71,10 +78,6 @@ export function RewardsDashboard() {
             <AddressesTab />
           </TabsContent>
         )}
-
-        <TabsContent value="history" className="mt-6">
-          <HistoryTab />
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Trophy } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,9 +9,16 @@ import { ProgressDashboard } from './progress-dashboard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/auth/auth-provider';
 
+// Dynamic import with SSR disabled to avoid wallet context issues during hydration
+const EnrollmentModal = dynamic(
+  () => import('./enrollment-modal').then((mod) => mod.EnrollmentModal),
+  { ssr: false }
+);
+
 export function ProgressTab() {
   const queryClient = useQueryClient();
-  const { isFacilitatorOwner } = useAuth();
+  const { isFacilitatorOwner, refetchRewardsStatus } = useAuth();
+  const [enrollmentModalOpen, setEnrollmentModalOpen] = useState(false);
 
   // Fetch active campaign
   const { data: activeCampaign, isLoading: campaignLoading } = useQuery({
@@ -45,6 +54,16 @@ export function ProgressTab() {
     queryClient.invalidateQueries({ queryKey: ['activeCampaign'] });
   };
 
+  const handleEnrollmentModalClose = (open: boolean) => {
+    setEnrollmentModalOpen(open);
+    if (!open) {
+      // Refetch when modal closes (in case address was added)
+      queryClient.invalidateQueries({ queryKey: ['volumeBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['rewardsVolume'] });
+      refetchRewardsStatus();
+    }
+  };
+
   // Loading state
   if (campaignLoading) {
     return (
@@ -71,14 +90,22 @@ export function ProgressTab() {
 
   // Render progress dashboard
   return (
-    <ProgressDashboard
-      campaign={activeCampaign.campaign}
-      userVolume={volumeLoading ? '0' : (volumeData?.totalVolume ?? '0')}
-      totalPoolVolume={activeCampaign.totalVolume}
-      isFacilitatorOwner={isFacilitatorOwner}
-      volumeBreakdown={breakdownData ?? null}
-      claim={claimLoading ? null : (claimData?.claim ?? null)}
-      onClaimSuccess={handleClaimSuccess}
-    />
+    <>
+      <ProgressDashboard
+        campaign={activeCampaign.campaign}
+        userVolume={volumeLoading ? '0' : (volumeData?.totalVolume ?? '0')}
+        totalPoolVolume={activeCampaign.totalVolume}
+        isFacilitatorOwner={isFacilitatorOwner}
+        volumeBreakdown={breakdownData ?? null}
+        claim={claimLoading ? null : (claimData?.claim ?? null)}
+        onClaimSuccess={handleClaimSuccess}
+        onEnrollClick={() => setEnrollmentModalOpen(true)}
+      />
+
+      <EnrollmentModal
+        open={enrollmentModalOpen}
+        onOpenChange={handleEnrollmentModalClose}
+      />
+    </>
   );
 }
