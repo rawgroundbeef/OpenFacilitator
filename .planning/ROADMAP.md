@@ -63,10 +63,10 @@ Plans:
   2. `verify()` accepts and correctly processes both v1 and v2 payloads
   3. `settle()` accepts and correctly processes both v1 and v2 payloads
   4. SDK builds successfully with `pnpm --filter=@openfacilitator/sdk build`
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 14-01: [TBD during planning]
+- [ ] 14-01-PLAN.md — Add getVersionSafe utility and version validation to verify/settle methods
 
 ### Phase 15: Refund Documentation
 **Goal**: Merchants have a comprehensive guide to implement refund protection
@@ -103,6 +103,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 12. SDK Type Definitions | v1.1 | 1/1 | ✓ Complete | 2026-01-20 |
 | 13. SDK Type Guards & Utilities | v1.1 | 1/1 | ✓ Complete | 2026-01-21 |
-| 14. SDK Method Updates | v1.1 | 0/TBD | Not started | - |
+| 14. SDK Method Updates | v1.1 | 0/1 | Not started | - |
 | 15. Refund Documentation | v1.1 | 0/TBD | Not started | - |
 | 16. Investigate Whitelabel Volume Tracking | v1.1 | 0/TBD | Not started | - |
