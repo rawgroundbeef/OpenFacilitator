@@ -8,11 +8,24 @@ A rewards program that pays users $OPEN tokens (Solana SPL) for volume processed
 
 Users who process volume through OpenFacilitator get rewarded with $OPEN tokens. Hit threshold, get tokens. Own a white-label facilitator, get 2x.
 
+## Current State
+
+**Shipped:** v1.0 Rewards Program (2026-01-20)
+
+**Codebase:**
+- Dashboard: ~17,400 LOC TypeScript/React
+- Server: SQLite + Better Auth + Hono
+- 47 files added/modified for rewards feature
+
+**Tech stack:**
+- Next.js 15.5 + React 19 + Tailwind + shadcn/ui
+- @solana/wallet-adapter-react for Solana wallets
+- wagmi + viem for EVM wallets
+- @solana/web3.js + @solana/spl-token for token transfers
+
 ## Requirements
 
 ### Validated
-
-<!-- Existing capabilities from codebase -->
 
 - ✓ User authentication via Better Auth (email/password) — existing
 - ✓ Multi-tenant facilitator system with subdomain/custom domain routing — existing
@@ -20,71 +33,67 @@ Users who process volume through OpenFacilitator get rewarded with $OPEN tokens.
 - ✓ Free facilitator at pay.openfacilitator.io — existing
 - ✓ Dashboard with facilitator management, products, stats — existing
 - ✓ Solana wallet generation and SPL token support — existing
+- ✓ Free users can register for rewards tracking — v1.0
+- ✓ Users can add/verify Solana and EVM pay-to addresses — v1.0
+- ✓ Dashboard shows volume, threshold progress, estimated rewards — v1.0
+- ✓ Facilitator owners get 2x multiplier automatically — v1.0
+- ✓ Admin can create and manage reward campaigns — v1.0
+- ✓ Volume calculated from transaction logs for verified addresses — v1.0
+- ✓ Users can claim $OPEN tokens when threshold met — v1.0
+- ✓ SPL token transfer from rewards wallet on claim — v1.0
+- ✓ Claim history with transaction signatures — v1.0
 
 ### Active
 
-<!-- New scope for rewards program -->
-
-- [ ] Free users can register for rewards tracking without creating a facilitator
-- [ ] Users can add pay-to addresses and verify ownership via Solana signature
-- [ ] Dashboard shows current volume, threshold progress, estimated rewards
-- [ ] Facilitator owners get 2x multiplier automatically applied
-- [ ] Admin can create and manage reward campaigns (pool, threshold, dates)
-- [ ] Volume calculated from transaction logs for verified addresses
-- [ ] Users can claim $OPEN tokens when threshold met and campaign ends
-- [ ] SPL token transfer from rewards wallet on claim
-- [ ] Claim history with transaction signatures
+- [ ] Dashboard features spotlight for discoverability (Refunds, Facilitator, Rewards cards)
+- [ ] Email notifications when threshold reached or claim available
+- [ ] Sybil cluster detection dashboard for admins
 
 ### Out of Scope
 
 - Leaderboards — deferred to post-launch based on demand
-- Email notifications — nice to have, not MVP
-- Anti-gaming enforcement — track metrics but don't block anyone for v1
-- Mobile app — web dashboard only
-- OAuth login — email/password sufficient
+- Gamification (badges, streaks) — distraction from core value
+- KYC verification — adds friction, not needed for loyalty program
+- Complex tier systems — simplicity is a feature
+- Mobile app — web dashboard sufficient
+- OAuth login — email/password + wallet sufficient
 
 ## Context
 
-**Existing System:**
-- Monorepo with `@openfacilitator/core`, `server`, `sdk`, `dashboard`
-- SQLite database via better-sqlite3
-- Better Auth for authentication
-- Transactions table stores: facilitator_id, to_address, from_address, amount, status
-- Dashboard is Next.js 15.5.x + React 19 + Tailwind + shadcn/ui
+**Production readiness:**
+- Rewards wallet needs funding (REWARDS_WALLET_PRIVATE_KEY env var)
+- OPEN_TOKEN_MINT address needs configuration
+- CRON_SECRET for volume snapshot jobs
+- First campaign needs creation via /rewards/admin
 
-**Free Facilitator:**
-- pay.openfacilitator.io is a dogfooded white-label facilitator
-- Free users process payments through this facilitator
-- Volume tracked via to_address in transactions table
-
-**Rewards Model:**
-- Campaign pool (e.g., 20M $OPEN) distributed proportionally to qualifying users
-- Threshold: $1,000/month minimum volume to qualify
-- Multiplier: 2x for white-label facilitator owners
-- Claims open when campaign period ends (March 2026 for first campaign)
-
-**Timeline:**
-- Dashboard/tracking: Launch January/February 2026
-- Claims: March 2026
-- Rewards wallet needs setup before March
+**Known limitations:**
+- Single active campaign at a time (by design)
+- 5 address limit per user (anti-gaming)
+- 30-day claim window after campaign ends
 
 ## Constraints
 
-- **Database**: SQLite (existing) — keep schema additions compatible
-- **Auth**: Better Auth (existing) — extend for rewards accounts, don't replace
-- **UI**: Integrate into existing dashboard as new tab/section
-- **Token**: $OPEN on Solana — need SPL token transfer capability
-- **Timeline**: Dashboard ASAP, claims by March 2026
+- **Database**: SQLite (existing) — all rewards tables added to same DB
+- **Auth**: Better Auth (existing) — rewards extends auth context
+- **UI**: Integrated into existing dashboard at /rewards
+- **Token**: $OPEN on Solana — SPL token transfers via @solana/spl-token
+- **Timeline**: v1.0 shipped, claims available March 2026
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Integrate into existing dashboard | Reduces complexity, leverages existing auth | — Pending |
-| SQLite for rewards tables | Consistent with existing infra | — Pending |
-| Solana signature verification | Industry standard, users already have Solana wallets | — Pending |
-| Proportional distribution | Fair allocation based on contribution | — Pending |
+| Integrate into existing dashboard | Reduces complexity, leverages existing auth | ✓ Good |
+| SQLite for rewards tables | Consistent with existing infra | ✓ Good |
+| Solana signature verification (Ed25519) | Industry standard, users already have wallets | ✓ Good |
+| EVM signature verification (EIP-191) | Industry standard for Ethereum | ✓ Good |
+| Proportional distribution | Fair allocation based on contribution | ✓ Good |
 | Soft anti-gaming (track, don't block) | Gaming is acceptable CAC for v1 | — Pending |
+| Snapshot + live delta for volume | Efficient aggregation at scale | ✓ Good |
+| Ephemeral wallet connection for claims | Security - don't store wallet keys | ✓ Good |
+| Combined initiate + execute claim | Atomic operation, simpler UX | ✓ Good |
+| 5 address limit per user | Balance flexibility vs abuse prevention | ✓ Good |
+| Single active campaign | Simplicity, clear rules for users | ✓ Good |
 
 ---
-*Last updated: 2026-01-19 after initialization*
+*Last updated: 2026-01-20 after v1.0 milestone*
