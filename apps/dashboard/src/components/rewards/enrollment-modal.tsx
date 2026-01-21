@@ -52,7 +52,7 @@ export function EnrollmentModal({ open, onOpenChange }: EnrollmentModalProps) {
     }
   }, [connected, publicKey, status]);
 
-  const handleConnectPhantom = useCallback(() => {
+  const handleConnectPhantom = useCallback(async () => {
     if (!phantomWallet) {
       setErrorMessage('Phantom wallet not found. Please install Phantom.');
       setStatus('error');
@@ -62,9 +62,24 @@ export function EnrollmentModal({ open, onOpenChange }: EnrollmentModalProps) {
     setStatus('connecting');
     setErrorMessage(null);
 
-    // Select Phantom - the effect above will trigger connect() once selected
+    // Select Phantom and connect directly (avoid race condition with effect)
     select(phantomWallet.adapter.name);
-  }, [phantomWallet, select]);
+
+    // Small delay to let selection register, then connect
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      await connect();
+    } catch (err) {
+      console.error('Failed to connect:', err);
+      if (err instanceof Error && err.message.includes('User rejected')) {
+        setStatus('idle');
+      } else {
+        setErrorMessage(err instanceof Error ? err.message : 'Failed to connect wallet');
+        setStatus('error');
+      }
+    }
+  }, [phantomWallet, select, connect]);
 
   const handleSign = useCallback(async () => {
     setStatus('signing');
