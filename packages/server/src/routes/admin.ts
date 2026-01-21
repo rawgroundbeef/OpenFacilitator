@@ -300,30 +300,32 @@ router.post('/facilitators', requireAuth, async (req: Request, res: Response) =>
     // Ensure facilitator owner has enrollment marker for volume tracking
     ensureFacilitatorMarker(ownerAddress);
 
-    // Register subdomain with Railway
-    const subdomainFull = `${subdomain}.openfacilitator.io`;
+    // Register custom domain with Railway (not subdomain - we only support custom domains)
     let railwayStatus: { success: boolean; error?: string } = { success: false };
 
-    if (isRailwayConfigured()) {
-      console.log(`Registering subdomain with Railway: ${subdomainFull}`);
-      railwayStatus = await addCustomDomain(subdomainFull);
+    if (customDomain && isRailwayConfigured()) {
+      console.log(`Registering custom domain with Railway: ${customDomain}`);
+      railwayStatus = await addCustomDomain(customDomain);
       if (railwayStatus.success) {
-        console.log(`Successfully registered ${subdomainFull} with Railway`);
+        console.log(`Successfully registered ${customDomain} with Railway`);
       } else {
-        console.error(`Failed to register ${subdomainFull} with Railway:`, railwayStatus.error);
+        console.error(`Failed to register ${customDomain} with Railway:`, railwayStatus.error);
       }
+    } else if (!customDomain) {
+      console.log('No custom domain provided, skipping Railway registration');
     } else {
-      console.log('Railway not configured, skipping subdomain registration');
+      console.log('Railway not configured, skipping domain registration');
     }
 
     res.status(201).json({
       id: facilitator.id,
       name: facilitator.name,
       subdomain: facilitator.subdomain,
+      customDomain: facilitator.custom_domain,
       ownerAddress: facilitator.owner_address,
       supportedChains: JSON.parse(facilitator.supported_chains),
       supportedTokens: JSON.parse(facilitator.supported_tokens),
-      url: `https://${facilitator.subdomain}.openfacilitator.io`,
+      url: customDomain ? `https://${customDomain}` : null,
       createdAt: formatSqliteDate(facilitator.created_at),
       railwayRegistered: railwayStatus.success,
       railwayError: railwayStatus.error,

@@ -69,15 +69,14 @@ async function createFacilitatorFromPending(options: { pendingId?: string; userI
       return { created: false, error: 'Failed to create facilitator (subdomain may already exist)' };
     }
 
-    // Register subdomain with Railway
-    const subdomainFull = `${pending.subdomain}.openfacilitator.io`;
-    if (isRailwayConfigured()) {
-      console.log(`[Subscription Webhook] Registering subdomain with Railway: ${subdomainFull}`);
-      const railwayResult = await addCustomDomain(subdomainFull);
+    // Register custom domain with Railway (not subdomain - we only support custom domains)
+    if (pending.custom_domain && isRailwayConfigured()) {
+      console.log(`[Subscription Webhook] Registering custom domain with Railway: ${pending.custom_domain}`);
+      const railwayResult = await addCustomDomain(pending.custom_domain);
       if (railwayResult.success) {
-        console.log(`[Subscription Webhook] Successfully registered ${subdomainFull} with Railway`);
+        console.log(`[Subscription Webhook] Successfully registered ${pending.custom_domain} with Railway`);
       } else {
-        console.error(`[Subscription Webhook] Failed to register ${subdomainFull}:`, railwayResult.error);
+        console.error(`[Subscription Webhook] Failed to register ${pending.custom_domain}:`, railwayResult.error);
       }
     }
 

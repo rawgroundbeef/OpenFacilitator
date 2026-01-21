@@ -17,6 +17,7 @@ interface AddressBreakdownProps {
     facilitatorId?: string;
     facilitatorName?: string;
     facilitatorFavicon?: string | null;
+    facilitatorCustomDomain?: string | null;
   }>;
   totalVolume: string;
   onEnrollClick?: () => void;
@@ -119,21 +120,26 @@ function FacilitatorsCard({
               const volumeNum = Number(facilitator.volume);
               const percentage = totalVolumeNum > 0 ? (volumeNum / totalVolumeNum) * 100 : 0;
 
+              // Display name, fallback to custom domain, then subdomain
+              const displayName = facilitator.facilitatorName ||
+                facilitator.facilitatorCustomDomain ||
+                facilitator.address;
+
               return (
                 <div
                   key={facilitator.id}
                   className="flex items-center justify-between py-2 border-b border-border last:border-0"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <FacilitatorIcon
                       favicon={facilitator.facilitatorFavicon}
-                      name={facilitator.facilitatorName || 'Facilitator'}
+                      name={displayName}
                     />
-                    <span className="text-sm font-medium">
-                      {facilitator.facilitatorName || facilitator.address}
+                    <span className="text-sm font-medium truncate">
+                      {displayName}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3 text-sm flex-shrink-0">
                     <span className="font-medium">{formatUSDC(facilitator.volume)}</span>
                     <span className="text-muted-foreground w-14 text-right">
                       {percentage.toFixed(1)}%

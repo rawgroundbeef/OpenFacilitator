@@ -360,6 +360,7 @@ export function getVolumeBreakdownByUser(
     facilitatorId?: string;
     facilitatorName?: string;
     facilitatorFavicon?: string | null;
+    facilitatorCustomDomain?: string | null;
   }>;
 } {
   const db = getDatabase();
@@ -400,6 +401,7 @@ export function getVolumeBreakdownByUser(
     facilitatorId?: string;
     facilitatorName?: string;
     facilitatorFavicon?: string | null;
+    facilitatorCustomDomain?: string | null;
   }> = [];
 
   let totalVolumeBigInt = BigInt(0);
@@ -433,13 +435,14 @@ export function getVolumeBreakdownByUser(
 
       result.push({
         id: `facilitator-${facilitator.id}`,
-        address: facilitator.subdomain,
+        address: facilitator.custom_domain || facilitator.subdomain,
         chain_type: 'facilitator',
         volume: volumeData.volume,
         uniquePayers: volumeData.unique_payers,
         facilitatorId: facilitator.id,
         facilitatorName: facilitator.name,
         facilitatorFavicon: facilitator.favicon,
+        facilitatorCustomDomain: facilitator.custom_domain,
       });
     }
   }
