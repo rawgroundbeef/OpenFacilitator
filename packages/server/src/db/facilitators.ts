@@ -242,24 +242,28 @@ export function ensureFacilitatorMarker(userId: string): ReturnType<typeof creat
   const normalizedUserId = userId.toLowerCase();
 
   // Check if user exists in the user table (required for foreign key constraint)
+  // Use case-insensitive comparison since user IDs may have mixed case
   const userExistsStmt = db.prepare(`
-    SELECT 1 FROM "user" WHERE id = ? LIMIT 1
+    SELECT id FROM "user" WHERE LOWER(id) = ? LIMIT 1
   `);
-  if (!userExistsStmt.get(normalizedUserId)) {
+  const userRecord = userExistsStmt.get(normalizedUserId) as { id: string } | undefined;
+  if (!userRecord) {
     return null; // User doesn't exist in user table
   }
+  const actualUserId = userRecord.id; // Use the actual case from DB
 
-  // Check if marker already exists
+  // Check if marker already exists (use actual user ID for FK consistency)
   const existingStmt = db.prepare(`
     SELECT 1 FROM reward_addresses
     WHERE user_id = ? AND chain_type = 'facilitator'
     LIMIT 1
   `);
-  if (existingStmt.get(normalizedUserId)) {
+  if (existingStmt.get(actualUserId)) {
     return null; // Marker already exists
   }
 
   // Find the user's earliest facilitator by created_at
+  // Use lowercase for owner_address comparison (facilitators store lowercase)
   const earliestStmt = db.prepare(`
     SELECT created_at FROM facilitators
     WHERE owner_address = ?
@@ -272,8 +276,8 @@ export function ensureFacilitatorMarker(userId: string): ReturnType<typeof creat
     return null; // User doesn't own any facilitators
   }
 
-  // Create the marker with the earliest facilitator's created_at
-  return createFacilitatorMarker(normalizedUserId, earliest.created_at);
+  // Create the marker with the actual user ID (for FK constraint) and earliest date
+  return createFacilitatorMarker(actualUserId, earliest.created_at);
 }
 
 /**
