@@ -62,8 +62,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Backend multi-wallet infrastructure (DB + API endpoints)
-- [ ] 18-02-PLAN.md — Frontend wallet cards UI with balance, copy, refresh
+- [x] 18-01-PLAN.md — Backend multi-wallet infrastructure (DB + API endpoints)
+- [x] 18-02-PLAN.md — Frontend wallet cards UI with balance, copy, refresh
 
 **Success Criteria:**
 
@@ -130,7 +130,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 17 | UI Cleanup & Subscriptions Section | 8 | Complete |
-| 18 | Multi-Chain Wallet Infrastructure | 4 | Pending |
+| 18 | Multi-Chain Wallet Infrastructure | 4 | Complete |
 | 19 | Chain Preference Logic | 3 | Pending |
 | 20 | Recurring Payment Engine | 6 | Pending |
 | 21 | Notifications & Edge Cases | 4 | Pending |
@@ -139,4 +139,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-22*
-*Last updated: 2026-01-22 — Phase 18 planned*
+*Last updated: 2026-01-22 — Phase 18 complete*

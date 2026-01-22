@@ -10,20 +10,20 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Milestone: v1.2 Subscription Wallet Overhaul
-Phase: 18 - Multi-Chain Wallet Infrastructure (Complete)
+Phase: 18 - Multi-Chain Wallet Infrastructure
 Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-01-22 — Completed 18-02-PLAN.md (wallet cards UI)
+Status: Phase verified and complete
+Last activity: 2026-01-22 — Phase 18 verified (8/8 must-haves)
 
-Progress: [██████░░░░░░░░░░░░░░] 31%
+Progress: [████████░░░░░░░░░░░░] 40%
 
 ## Phase Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 17 | UI Cleanup & Subscriptions Section | 8 | Complete |
-| 18 | Multi-Chain Wallet Infrastructure | 4 | Complete |
-| 19 | Chain Preference Logic | 3 | Pending |
+| 17 | UI Cleanup & Subscriptions Section | 8 | Complete ✓ |
+| 18 | Multi-Chain Wallet Infrastructure | 4 | Complete ✓ |
+| 19 | Chain Preference Logic | 3 | Next |
 | 20 | Recurring Payment Engine | 6 | Pending |
 | 21 | Notifications & Edge Cases | 4 | Pending |
 
@@ -75,6 +75,9 @@ v1.2 decisions:
 - Prominent chain preference toggle (discoverability)
 - Four subscription states: active (green), pending (amber), inactive (red), never (gray)
 - Grace period detection (7 days) for pending state
+- Side-by-side wallet cards (Base first, Solana second)
+- Manual balance refresh only (no auto-polling)
+- Chain logo letter fallback (no image assets needed)
 
 ### Pending Todos
 
@@ -92,5 +95,5 @@ v1.2 decisions:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 18-02-PLAN.md (wallet cards UI)
-Resume with: `/gsd:execute-phase` for Phase 19 (Chain Preference Logic)
+Stopped at: Phase 18 verified and complete
+Resume with: `/gsd:discuss-phase 19`

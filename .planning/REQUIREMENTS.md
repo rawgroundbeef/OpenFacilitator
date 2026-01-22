@@ -23,10 +23,10 @@ Requirements for Subscription Wallet Overhaul milestone.
 
 ### Multi-Chain Wallets
 
-- [ ] **WALL-01**: Base wallet implemented alongside Solana wallet
-- [ ] **WALL-02**: Each wallet displays balance and chain identifier
-- [ ] **WALL-03**: Wallet addresses visible for direct funding
-- [ ] **WALL-04**: Real-time balance updates on funding
+- [x] **WALL-01**: Base wallet implemented alongside Solana wallet
+- [x] **WALL-02**: Each wallet displays balance and chain identifier
+- [x] **WALL-03**: Wallet addresses visible for direct funding
+- [x] **WALL-04**: Real-time balance updates on funding
 
 ### Chain Preference
 
@@ -88,10 +88,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUBD-03 | Phase 17 | Complete |
 | SUBD-04 | Phase 17 | Complete |
 | SUBD-05 | Phase 17 | Complete |
-| WALL-01 | Phase 18 | Pending |
-| WALL-02 | Phase 18 | Pending |
-| WALL-03 | Phase 18 | Pending |
-| WALL-04 | Phase 18 | Pending |
+| WALL-01 | Phase 18 | Complete |
+| WALL-02 | Phase 18 | Complete |
+| WALL-03 | Phase 18 | Complete |
+| WALL-04 | Phase 18 | Complete |
 | PREF-01 | Phase 19 | Pending |
 | PREF-02 | Phase 19 | Pending |
 | PREF-03 | Phase 19 | Pending |
