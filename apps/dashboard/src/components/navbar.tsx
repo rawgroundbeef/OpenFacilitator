@@ -60,10 +60,13 @@ export function Navbar() {
       {/* Rewards Banner */}
       {showBanner && (
         <div className="fixed top-0 w-full z-[60] bg-blue-600 text-white">
-          <div className="px-4 py-2.5 flex items-center justify-center gap-3 text-sm">
-            <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-            <span>
-              Earn $OPEN on your volume — rewards are live
+          <div className="px-4 py-2.5 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0 hidden sm:block" />
+            <span className="hidden sm:inline">
+              Building with x402? We're paying you in $OPEN
+            </span>
+            <span className="sm:hidden">
+              Earn $OPEN rewards
             </span>
             <Link
               href="/rewards"
