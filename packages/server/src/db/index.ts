@@ -384,13 +384,15 @@ export async function initializeDatabase(dbPath?: string): Promise<Database.Data
     );
 
     -- User billing wallets (custodial wallets for subscriptions)
+    -- Supports multiple wallets per user (one per chain: solana, base)
     CREATE TABLE IF NOT EXISTS user_wallets (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL UNIQUE REFERENCES "user" ("id") ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
       wallet_address TEXT NOT NULL,
       encrypted_private_key TEXT NOT NULL,
-      network TEXT NOT NULL DEFAULT 'base',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      network TEXT NOT NULL DEFAULT 'solana',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, network)
     );
 
     CREATE INDEX IF NOT EXISTS "session_userId_idx" ON "session" ("userId");

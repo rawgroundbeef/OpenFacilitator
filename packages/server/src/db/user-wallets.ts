@@ -12,14 +12,22 @@ export interface UserWallet {
 
 /**
  * Create a new user wallet
+ * Checks if wallet already exists for user on same network before creating
  */
 export function createUserWallet(
   userId: string,
   walletAddress: string,
   encryptedPrivateKey: string,
-  network: string = 'base'
+  network: string = 'solana'
 ): UserWallet {
   const db = getDatabase();
+
+  // Check if wallet already exists for this user on this network
+  const existing = getUserWalletByUserIdAndNetwork(userId, network);
+  if (existing) {
+    throw new Error(`Wallet already exists for user ${userId} on network ${network}`);
+  }
+
   const id = randomUUID();
 
   const stmt = db.prepare(`
@@ -43,12 +51,32 @@ export function getUserWalletById(id: string): UserWallet | null {
 }
 
 /**
- * Get a user wallet by user ID
+ * Get a user wallet by user ID (returns first/default wallet for backward compatibility)
  */
 export function getUserWalletByUserId(userId: string): UserWallet | null {
   const db = getDatabase();
-  const stmt = db.prepare('SELECT * FROM user_wallets WHERE user_id = ?');
+  const stmt = db.prepare('SELECT * FROM user_wallets WHERE user_id = ? ORDER BY created_at ASC LIMIT 1');
   const wallet = stmt.get(userId) as UserWallet | undefined;
+  return wallet || null;
+}
+
+/**
+ * Get all wallets for a user (supports multiple wallets per user)
+ */
+export function getUserWalletsByUserId(userId: string): UserWallet[] {
+  const db = getDatabase();
+  const stmt = db.prepare('SELECT * FROM user_wallets WHERE user_id = ? ORDER BY created_at ASC');
+  const wallets = stmt.all(userId) as UserWallet[];
+  return wallets;
+}
+
+/**
+ * Get a specific wallet for a user by network
+ */
+export function getUserWalletByUserIdAndNetwork(userId: string, network: string): UserWallet | null {
+  const db = getDatabase();
+  const stmt = db.prepare('SELECT * FROM user_wallets WHERE user_id = ? AND network = ?');
+  const wallet = stmt.get(userId, network) as UserWallet | undefined;
   return wallet || null;
 }
 
@@ -69,5 +97,15 @@ export function deleteUserWallet(userId: string): boolean {
   const db = getDatabase();
   const stmt = db.prepare('DELETE FROM user_wallets WHERE user_id = ?');
   const result = stmt.run(userId);
+  return result.changes > 0;
+}
+
+/**
+ * Delete a specific wallet by user ID and network
+ */
+export function deleteUserWalletByNetwork(userId: string, network: string): boolean {
+  const db = getDatabase();
+  const stmt = db.prepare('DELETE FROM user_wallets WHERE user_id = ? AND network = ?');
+  const result = stmt.run(userId, network);
   return result.changes > 0;
 }

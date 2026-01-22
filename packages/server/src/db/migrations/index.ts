@@ -14,11 +14,13 @@ export interface Migration {
 // Import all migrations in order
 import { migration as m001 } from './001_claims_server_id_nullable.js';
 import { migration as m002 } from './002_campaign_audit_table.js';
+import { migration as m003 } from './003_user_wallets_multi_chain.js';
 
 // Register migrations in order
 const migrations: Migration[] = [
   m001,
   m002,
+  m003,
 ];
 
 /**
