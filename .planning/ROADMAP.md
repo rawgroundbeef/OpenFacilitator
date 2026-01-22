@@ -82,6 +82,12 @@ Plans:
 
 **Requirements:** PREF-01, PREF-02, PREF-03
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Backend preference storage, API endpoints, default calculation
+- [ ] 19-02-PLAN.md — Toggle UI with optimistic updates, WalletCards integration
+
 **Success Criteria:**
 
 1. User who initially paid via Base sees Base as default preferred chain
@@ -139,4 +145,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-22*
-*Last updated: 2026-01-22 — Phase 18 complete*
+*Last updated: 2026-01-22 — Phase 19 planned*
