@@ -34,6 +34,13 @@ See: milestones/v1.1-ROADMAP.md for archived v1.1 phase details.
 
 **Requirements:** UICL-01, UICL-02, UICL-03, SUBD-01, SUBD-02, SUBD-03, SUBD-04, SUBD-05
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Replace WalletDropdown with UserMenu in header
+- [ ] 17-02-PLAN.md — Add payment history API endpoint
+- [ ] 17-03-PLAN.md — Create Subscriptions page with status, billing, and history
+
 **Success Criteria:**
 
 1. User sees header without any wallet connection button or embedded wallet UI
@@ -116,7 +123,7 @@ See: milestones/v1.1-ROADMAP.md for archived v1.1 phase details.
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 17 | UI Cleanup & Subscriptions Section | 8 | Pending |
+| 17 | UI Cleanup & Subscriptions Section | 8 | Planned |
 | 18 | Multi-Chain Wallet Infrastructure | 4 | Pending |
 | 19 | Chain Preference Logic | 3 | Pending |
 | 20 | Recurring Payment Engine | 6 | Pending |
