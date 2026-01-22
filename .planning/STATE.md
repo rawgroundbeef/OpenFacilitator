@@ -104,7 +104,8 @@ v1.2 decisions:
 ### Blockers/Concerns
 
 - **Pre-Launch:** Rewards wallet must be funded before claims go live (March 2026)
-- **Pre-Launch:** CRON_SECRET env var for volume snapshot cron jobs
+- **Pre-Launch:** CRON_SECRET env var for volume snapshot cron jobs AND subscription billing cron
+- **Pre-Launch:** External cron scheduler needed for daily billing (midnight UTC)
 - **Phase 20:** Base chain payments not yet supported in x402-client (Solana only)
 
 ## Session Continuity
