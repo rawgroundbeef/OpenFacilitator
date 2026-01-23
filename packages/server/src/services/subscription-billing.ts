@@ -10,7 +10,7 @@ import {
   getUSDCBalance,
   getBaseUSDCBalance,
 } from './wallet.js';
-import { makeX402Payment } from './x402-client.js';
+import { makeX402Payment, makeBaseX402Payment } from './x402-client.js';
 import {
   createSubscription,
   getActiveSubscription,
@@ -178,35 +178,20 @@ async function attemptPayment(
     // Decrypt private key
     const privateKey = decryptUserPrivateKey(userId, chain);
 
-    // Make x402 payment
-    // Note: makeX402Payment currently only supports Solana
-    // For Base payments, we'll need to enhance x402-client or handle separately
-    if (chain === 'base') {
-      // Log pending payment for Base (not yet implemented)
-      const payment = createSubscriptionPayment(
-        userId,
-        amount,
-        chain,
-        'failed',
-        null,
-        'Base chain payments not yet implemented in x402-client',
-        null,
-        isFallback
-      );
-
-      return {
-        success: false,
-        error: 'Base chain payments not yet implemented',
-      };
-    }
-
-    // Make Solana payment via x402
-    const paymentResult = await makeX402Payment(
-      X402_JOBS_PAYMENT_URL,
-      { userId }, // Payment metadata
-      privateKey,
-      wallet.address
-    );
+    // Make x402 payment on the appropriate chain
+    const paymentResult = chain === 'base'
+      ? await makeBaseX402Payment(
+          X402_JOBS_PAYMENT_URL,
+          { userId }, // Payment metadata
+          privateKey,
+          wallet.address
+        )
+      : await makeX402Payment(
+          X402_JOBS_PAYMENT_URL,
+          { userId }, // Payment metadata
+          privateKey,
+          wallet.address
+        );
 
     // Check if insufficient balance was detected during payment
     if (!paymentResult.success && paymentResult.insufficientBalance) {
