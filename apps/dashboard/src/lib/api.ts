@@ -244,7 +244,7 @@ export interface ChainPreference {
 }
 
 export interface ChainPreferenceUpdateResponse {
-  preferredChain: 'base' | 'solana';
+  preferredChain: 'base' | 'solana' | 'stacks';
   updated: boolean;
 }
 
@@ -1057,7 +1057,7 @@ class ApiClient {
     return this.request('/api/admin/preference');
   }
 
-  async updateChainPreference(chain: 'base' | 'solana'): Promise<ChainPreferenceUpdateResponse> {
+  async updateChainPreference(chain: 'base' | 'solana' | 'stacks'): Promise<ChainPreferenceUpdateResponse> {
     return this.request('/api/admin/preference', {
       method: 'PUT',
       body: JSON.stringify({ preferredChain: chain }),

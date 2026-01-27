@@ -14,7 +14,7 @@ export function useChainPreference() {
 
   // Update preference with optimistic update
   const mutation = useMutation({
-    mutationFn: (chain: 'base' | 'solana') => api.updateChainPreference(chain),
+    mutationFn: (chain: 'base' | 'solana' | 'stacks') => api.updateChainPreference(chain),
 
     // Optimistic update - runs immediately before API call
     onMutate: async (newChain) => {
