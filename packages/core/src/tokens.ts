@@ -24,6 +24,21 @@ export const knownTokens: Record<string, Record<ChainId, string>> = {
   SOL: {
     solana: 'So11111111111111111111111111111111111111112', // Native SOL (wrapped)
   },
+  // STX (native, Stacks)
+  STX: {
+    stacks: 'STX',
+    'stacks-testnet': 'STX',
+  },
+  // sBTC on Stacks
+  sBTC: {
+    stacks: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+    'stacks-testnet': 'ST1F7QA2MDF17S807EPA36TSS8AMEFY4KA9TVGWXT.sbtc-token',
+  },
+  // USDCx on Stacks
+  USDCx: {
+    stacks: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
+    'stacks-testnet': 'ST2Y455NJPETB2SRSD0VDZP3KJE50WNHY0BN3TWY5.usdcx',
+  },
 };
 
 /**
@@ -44,6 +59,27 @@ export const defaultTokens: TokenConfig[] = [
     decimals: 6,
     chainId: 'solana',
   },
+  // STX on Stacks Mainnet
+  {
+    address: knownTokens.STX['stacks'],
+    symbol: 'STX',
+    decimals: 6,
+    chainId: 'stacks',
+  },
+  // sBTC on Stacks Mainnet
+  {
+    address: knownTokens.sBTC['stacks'],
+    symbol: 'sBTC',
+    decimals: 8,
+    chainId: 'stacks',
+  },
+  // USDCx on Stacks Mainnet
+  {
+    address: knownTokens.USDCx['stacks'],
+    symbol: 'USDCx',
+    decimals: 6,
+    chainId: 'stacks',
+  },
 ];
 
 /**
@@ -63,6 +99,27 @@ export const testTokens: TokenConfig[] = [
     symbol: 'USDC',
     decimals: 6,
     chainId: 'solana-devnet',
+  },
+  // STX on Stacks Testnet
+  {
+    address: knownTokens.STX['stacks-testnet'],
+    symbol: 'STX',
+    decimals: 6,
+    chainId: 'stacks-testnet',
+  },
+  // sBTC on Stacks Testnet
+  {
+    address: knownTokens.sBTC['stacks-testnet'],
+    symbol: 'sBTC',
+    decimals: 8,
+    chainId: 'stacks-testnet',
+  },
+  // USDCx on Stacks Testnet
+  {
+    address: knownTokens.USDCx['stacks-testnet'],
+    symbol: 'USDCx',
+    decimals: 6,
+    chainId: 'stacks-testnet',
   },
 ];
 

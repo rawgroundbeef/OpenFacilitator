@@ -1,4 +1,4 @@
-import type { ChainConfig } from './types.js';
+import type { ChainConfig, ChainId } from './types.js';
 
 /**
  * Default supported chains for x402 facilitators
@@ -88,6 +88,15 @@ export const defaultChains: Record<string, ChainConfig> = {
     blockExplorerUrl: 'https://solscan.io',
     isEVM: false,
   },
+  // Stacks Mainnet
+  stacks: {
+    chainId: 'stacks',
+    name: 'Stacks',
+    network: 'stacks',
+    rpcUrl: process.env.STACKS_RPC_URL || 'https://api.hiro.so',
+    blockExplorerUrl: 'https://explorer.stacks.co',
+    isEVM: false,
+  },
 
   // ===== TESTNETS =====
   
@@ -154,6 +163,15 @@ export const defaultChains: Record<string, ChainConfig> = {
     blockExplorerUrl: 'https://solscan.io/?cluster=devnet',
     isEVM: false,
   },
+  // Stacks Testnet
+  'stacks-testnet': {
+    chainId: 'stacks-testnet',
+    name: 'Stacks Testnet',
+    network: 'stacks-testnet',
+    rpcUrl: process.env.STACKS_TESTNET_RPC_URL || 'https://api.testnet.hiro.so',
+    blockExplorerUrl: 'https://explorer.stacks.co/?chain=testnet',
+    isEVM: false,
+  },
 };
 
 /**
@@ -193,6 +211,7 @@ export const networkToChainId: Record<string, number | string> = {
   xlayer: 196,
   solana: 'solana',
   'solana-mainnet': 'solana', // Alias for compatibility
+  stacks: 'stacks',
   // Testnets
   'avalanche-fuji': 43113,
   'base-sepolia': 84532,
@@ -201,6 +220,7 @@ export const networkToChainId: Record<string, number | string> = {
   sepolia: 11155111,
   'xlayer-testnet': 195,
   'solana-devnet': 'solana-devnet',
+  'stacks-testnet': 'stacks-testnet',
 };
 
 /**
@@ -218,6 +238,7 @@ export const chainIdToNetwork: Record<string | number, string> = {
   196: 'xlayer',
   solana: 'solana',
   'solana-mainnet': 'solana', // Alias
+  stacks: 'stacks',
   // Testnets
   43113: 'avalanche-fuji',
   84532: 'base-sepolia',
@@ -226,6 +247,7 @@ export const chainIdToNetwork: Record<string | number, string> = {
   11155111: 'sepolia',
   195: 'xlayer-testnet',
   'solana-devnet': 'solana-devnet',
+  'stacks-testnet': 'stacks-testnet',
 };
 
 /**
@@ -257,6 +279,17 @@ export function getChainIdFromNetwork(network: string): number | string | undefi
     }
   }
 
+  // Try Stacks CAIP-2 format
+  if (network.startsWith('stacks:')) {
+    const chainRef = network.slice(7); // Remove 'stacks:' prefix
+    if (chainRef === '1') {
+      return 'stacks';
+    }
+    if (chainRef === '2147483648') {
+      return 'stacks-testnet';
+    }
+  }
+
   return undefined;
 }
 
@@ -280,6 +313,7 @@ export const productionChains = [
   1329,  // Sei
   196,   // XLayer
   'solana',
+  'stacks',
 ] as const;
 
 /**
@@ -293,6 +327,7 @@ export const testChains = [
   11155111, // Sepolia
   195,      // XLayer Testnet
   'solana-devnet',
+  'stacks-testnet',
 ] as const;
 
 // ===== CAIP-2 Network Identifiers =====
@@ -305,6 +340,16 @@ export const solanaGenesisHashes = {
   mainnet: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
   devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
   testnet: '4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z',
+} as const;
+
+/**
+ * Stacks chain references for CAIP-2
+ * CAIP-2 format: stacks:{chainId}
+ * Mainnet = 1, Testnet = 2147483648 (0x80000000)
+ */
+export const stacksChainRefs = {
+  mainnet: '1',
+  testnet: '2147483648',
 } as const;
 
 /**
@@ -322,6 +367,8 @@ export const networkToCaip2: Record<string, string> = {
   xlayer: 'eip155:196',
   // Solana
   solana: `solana:${solanaGenesisHashes.mainnet}`,
+  // Stacks
+  stacks: `stacks:${stacksChainRefs.mainnet}`,
   // EVM Testnets
   'avalanche-fuji': 'eip155:43113',
   'base-sepolia': 'eip155:84532',
@@ -330,6 +377,7 @@ export const networkToCaip2: Record<string, string> = {
   sepolia: 'eip155:11155111',
   'xlayer-testnet': 'eip155:195',
   'solana-devnet': `solana:${solanaGenesisHashes.devnet}`,
+  'stacks-testnet': `stacks:${stacksChainRefs.testnet}`,
 };
 
 /**
@@ -347,6 +395,8 @@ export const caip2ToNetwork: Record<string, string> = {
   'eip155:196': 'xlayer',
   // Solana
   [`solana:${solanaGenesisHashes.mainnet}`]: 'solana',
+  // Stacks
+  [`stacks:${stacksChainRefs.mainnet}`]: 'stacks',
   // EVM Testnets
   'eip155:43113': 'avalanche-fuji',
   'eip155:84532': 'base-sepolia',
@@ -355,6 +405,7 @@ export const caip2ToNetwork: Record<string, string> = {
   'eip155:11155111': 'sepolia',
   'eip155:195': 'xlayer-testnet',
   [`solana:${solanaGenesisHashes.devnet}`]: 'solana-devnet',
+  [`stacks:${stacksChainRefs.testnet}`]: 'stacks-testnet',
 };
 
 /**
@@ -377,12 +428,30 @@ export function getNetworkFromCaip2(caip2: string): string | undefined {
 export function getCaip2Namespace(network: string): string {
   const config = getChainConfig(network);
   if (!config) return 'eip155:*';
-  return config.isEVM ? 'eip155:*' : 'solana:*';
+  if (config.isEVM) return 'eip155:*';
+  if (String(config.chainId).startsWith('solana')) return 'solana:*';
+  if (String(config.chainId).startsWith('stacks')) return 'stacks:*';
+  return 'eip155:*';
 }
 
 /**
  * Check if a network identifier is CAIP-2 format
  */
 export function isCaip2Format(identifier: string): boolean {
-  return identifier.includes(':') && (identifier.startsWith('eip155:') || identifier.startsWith('solana:'));
+  return identifier.includes(':') && (identifier.startsWith('eip155:') || identifier.startsWith('solana:') || identifier.startsWith('stacks:'));
+}
+
+/**
+ * Check if a chain ID belongs to a Stacks chain
+ */
+export function isStacksChain(chainId: ChainId): boolean {
+  return chainId === 'stacks' || chainId === 'stacks-testnet';
+}
+
+/**
+ * Check if a network identifier refers to Stacks
+ */
+export function isStacksNetwork(network: string): boolean {
+  const lower = network.toLowerCase();
+  return lower === 'stacks' || lower === 'stacks-testnet' || lower.startsWith('stacks:');
 }
