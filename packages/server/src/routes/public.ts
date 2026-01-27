@@ -66,9 +66,10 @@ function normalizePaymentPayload(payload: string | object): string {
 /**
  * Get free facilitator configuration from environment
  */
-function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?: string; solanaPrivateKey?: string; evmAddress?: string } | null {
+function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?: string; solanaPrivateKey?: string; stacksPrivateKey?: string; evmAddress?: string } | null {
   const evmPrivateKey = process.env.FREE_FACILITATOR_EVM_KEY;
   const solanaPrivateKey = process.env.FREE_FACILITATOR_SOLANA_KEY;
+  const stacksPrivateKey = process.env.FREE_FACILITATOR_STACKS_KEY;
   let evmAddress = process.env.FREE_FACILITATOR_EVM_ADDRESS;
   const solanaAddress = process.env.FREE_FACILITATOR_SOLANA_ADDRESS;
 
@@ -113,6 +114,17 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
     });
   }
 
+  // Add Stacks mainnet if Stacks key is configured
+  if (stacksPrivateKey) {
+    supportedChains.push('stacks');
+    supportedTokens.push({
+      symbol: 'STX',
+      address: 'native',
+      decimals: 6,
+      chainId: 'stacks',
+    });
+  }
+
   const config: FacilitatorConfig = {
     id: 'free-facilitator',
     name: 'OpenFacilitator Free',
@@ -124,7 +136,7 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
     updatedAt: new Date(),
   };
 
-  return { config, evmPrivateKey, solanaPrivateKey, evmAddress };
+  return { config, evmPrivateKey, solanaPrivateKey, stacksPrivateKey, evmAddress };
 }
 
 /**
@@ -135,6 +147,16 @@ function isSolanaNetwork(network: string): boolean {
          network === 'solana-mainnet' ||
          network === 'solana-devnet' ||
          network.startsWith('solana:');
+}
+
+/**
+ * Check if a network identifier is a Stacks network
+ */
+function isStacksNetwork(network: string): boolean {
+  return network === 'stacks' ||
+         network === 'stacks-mainnet' ||
+         network === 'stacks-testnet' ||
+         network.startsWith('stacks:');
 }
 
 /**
@@ -307,6 +329,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
 
     // Determine which private key to use based on network (supports both v1 and CAIP-2 formats)
     const isSolana = isSolanaNetwork(paymentRequirements.network);
+    const isStacks = isStacksNetwork(paymentRequirements.network);
 
     let privateKey: string | undefined;
 
@@ -322,6 +345,18 @@ router.post('/free/settle', async (req: Request, res: Response) => {
         return;
       }
       privateKey = facilitatorData.solanaPrivateKey;
+    } else if (isStacks) {
+      if (!facilitatorData.stacksPrivateKey) {
+        res.status(503).json({
+          success: false,
+          transaction: '',
+          payer: '',
+          network: paymentRequirements.network,
+          errorReason: 'Stacks not available on free facilitator',
+        });
+        return;
+      }
+      privateKey = facilitatorData.stacksPrivateKey;
     } else {
       if (!facilitatorData.evmPrivateKey) {
         res.status(503).json({
