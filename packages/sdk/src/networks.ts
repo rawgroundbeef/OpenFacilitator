@@ -1,4 +1,4 @@
-import type { NetworkInfo } from './types.js';
+import type { NetworkInfo, NetworkType } from './types.js';
 
 export const NETWORKS: NetworkInfo[] = [
   // EVM Mainnets
@@ -20,6 +20,10 @@ export const NETWORKS: NetworkInfo[] = [
   // Solana
   { v1Id: 'solana', v2Id: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', name: 'Solana', type: 'solana', testnet: false },
   { v1Id: 'solana-devnet', v2Id: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', name: 'Solana Devnet', type: 'solana', testnet: true },
+
+  // Stacks
+  { v1Id: 'stacks', v2Id: 'stacks:1', name: 'Stacks', type: 'stacks', testnet: false },
+  { v1Id: 'stacks-testnet', v2Id: 'stacks:2147483648', name: 'Stacks Testnet', type: 'stacks', testnet: true },
 ];
 
 /**
@@ -32,13 +36,14 @@ export function getNetwork(id: string): NetworkInfo | undefined {
 /**
  * Get network type from identifier
  */
-export function getNetworkType(id: string): 'evm' | 'solana' | undefined {
+export function getNetworkType(id: string): NetworkType | undefined {
   const network = getNetwork(id);
   if (network) return network.type;
 
   // Fallback: parse CAIP-2 prefix
   if (id.startsWith('eip155:')) return 'evm';
   if (id.startsWith('solana:')) return 'solana';
+  if (id.startsWith('stacks:')) return 'stacks';
 
   return undefined;
 }

@@ -208,7 +208,7 @@ export interface PaymentKind {
 
 // ============ Network Types ============
 
-export type NetworkType = 'evm' | 'solana';
+export type NetworkType = 'evm' | 'solana' | 'stacks';
 
 export interface NetworkInfo {
   /** v1 identifier (e.g., "base") */
