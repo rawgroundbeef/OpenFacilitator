@@ -83,20 +83,22 @@ const BASE_REQUIREMENTS = {
   solana: {
     scheme: 'exact',
     network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', // CAIP-2 Solana mainnet
-    maxAmountRequired: STATS_PRICE_ATOMIC,
+    amount: STATS_PRICE_ATOMIC,
     resource: `${API_URL}/stats/solana`,
     asset: USDC_SOLANA_MINT,
     payTo: SOLANA_TREASURY,
+    maxTimeoutSeconds: 300,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
     outputSchema: OUTPUT_SCHEMA,
   },
   base: {
     scheme: 'exact',
     network: 'eip155:8453', // CAIP-2 Base mainnet
-    maxAmountRequired: STATS_PRICE_ATOMIC,
+    amount: STATS_PRICE_ATOMIC,
     resource: `${API_URL}/stats/base`,
     asset: USDC_BASE,
     payTo: BASE_TREASURY,
+    maxTimeoutSeconds: 300,
     description: 'OpenFacilitator Platform Statistics - $5 per request',
     outputSchema: OUTPUT_SCHEMA,
   },

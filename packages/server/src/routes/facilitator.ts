@@ -734,14 +734,14 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
 
     // Build payment requirements (x402 v2 with CAIP-2 network identifier)
     const caip2Network = networkToCaip2[product.network] || product.network;
+    const productResourceUrl = `https://${record.custom_domain || record.subdomain + '.openfacilitator.io'}/pay/${product.id}`;
     const paymentRequirements: Record<string, unknown> = {
       scheme: 'exact',
       network: caip2Network,
-      maxAmountRequired: product.amount,
+      amount: product.amount,
       asset: product.asset,
       payTo: product.pay_to_address,
-      description: product.description || product.name,
-      resource: `https://${record.custom_domain || record.subdomain + '.openfacilitator.io'}/pay/${product.id}`,
+      maxTimeoutSeconds: 300,
     };
 
     // For Solana, add fee payer
@@ -807,6 +807,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
       res.status(402).json({
         x402Version: 2,
         accepts: [paymentRequirements],
+        resource: { url: productResourceUrl },
         error: 'Payment Required',
         message: product.description || product.name,
         requiredFields: productRequiredFields.length > 0 ? productRequiredFields : undefined,
@@ -885,6 +886,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
 
       if (!verifyResult.valid) {
         res.status(402).json({
+          x402Version: 2,
           error: 'Payment verification failed',
           reason: verifyResult.invalidReason,
           accepts: [paymentRequirements],
@@ -912,6 +914,7 @@ router.get('/pay/:productId', async (req: Request, res: Response) => {
 
       if (!settleResult.success) {
         res.status(402).json({
+          x402Version: 2,
           error: 'Payment settlement failed',
           reason: settleResult.errorReason,
           accepts: [paymentRequirements],
@@ -1951,10 +1954,10 @@ router.get('/pay/:productId/requirements', async (req: Request, res: Response) =
   const paymentRequirements: Record<string, unknown> = {
     scheme: 'exact',
     network: caip2Network,
-    maxAmountRequired: product.amount,
+    amount: product.amount,
     asset: product.asset,
     payTo: product.pay_to_address, // Payments go to user-specified address
-    description: product.description || product.name,
+    maxTimeoutSeconds: 300,
   };
 
   // For Solana, we also need the fee payer (facilitator's Solana wallet pays gas)
@@ -2096,11 +2099,10 @@ function buildProxyUrlPaymentRequirements(
   const requirements: Record<string, unknown> = {
     scheme: 'exact',
     network: caip2Network,
-    maxAmountRequired: proxyUrl.price_amount,
+    amount: proxyUrl.price_amount,
     asset: proxyUrl.price_asset,
     payTo: proxyUrl.pay_to_address,
-    description: proxyUrl.name,
-    resource: `${facilitatorUrl}/u/${proxyUrl.slug}`,
+    maxTimeoutSeconds: 300,
   };
 
   if (isSolana && record.encrypted_solana_private_key) {
@@ -2698,8 +2700,8 @@ function generateProxyUrlPaymentPage(
         const deadline = Math.floor(Date.now() / 1000) + 3600;
         const nonce = '0x' + [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Support both v1 (maxAmountRequired) and v2 (amount) formats
-        const paymentAmount = paymentRequirements.maxAmountRequired || paymentRequirements.amount;
+        // Support both v2 (amount) and v1 (maxAmountRequired) formats
+        const paymentAmount = paymentRequirements.amount || paymentRequirements.maxAmountRequired;
         const authorization = {
           from: userAddress,
           to: paymentRequirements.payTo,
@@ -2892,6 +2894,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
     res.status(402).json({
       x402Version: 2,
       accepts: [paymentRequirements],
+      resource: { url: `${facilitatorUrl}/u/${proxyUrl.slug}` },
       error: 'Payment Required',
       message: proxyUrl.name,
     });
@@ -2927,6 +2930,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
 
     if (!verifyResult.valid) {
       res.status(402).json({
+        x402Version: 2,
         error: 'Payment verification failed',
         reason: verifyResult.invalidReason,
         accepts: [paymentRequirements],
@@ -2953,6 +2957,7 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
 
     if (!settleResult.success) {
       res.status(402).json({
+        x402Version: 2,
         error: 'Payment settlement failed',
         reason: settleResult.errorReason,
         accepts: [paymentRequirements],

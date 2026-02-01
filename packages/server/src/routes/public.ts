@@ -439,9 +439,10 @@ async function getDemoRequirements(): Promise<PaymentRequirements[]> {
     requirements.push({
       scheme: 'exact',
       network: 'eip155:8453',
-      maxAmountRequired: DEMO_PRICE,
+      amount: DEMO_PRICE,
       asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
       payTo: process.env.TREASURY_BASE,
+      maxTimeoutSeconds: 300,
       resource: DEMO_RESOURCE,
       description: 'Demo endpoint - Base USDC ($0.10)',
       extra: baseFeePayer ? { feePayer: baseFeePayer } : undefined,
@@ -452,9 +453,10 @@ async function getDemoRequirements(): Promise<PaymentRequirements[]> {
     requirements.push({
       scheme: 'exact',
       network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-      maxAmountRequired: DEMO_PRICE,
+      amount: DEMO_PRICE,
       asset: SOLANA_USDC_MINT,
       payTo: process.env.TREASURY_SOLANA,
+      maxTimeoutSeconds: 300,
       resource: DEMO_RESOURCE,
       description: 'Demo endpoint - Solana USDC ($0.10)',
       extra: solanaFeePayer ? { feePayer: solanaFeePayer } : undefined,

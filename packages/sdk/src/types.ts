@@ -140,8 +140,14 @@ export interface PaymentRequirementsV2 {
   payTo: string;
   /** Maximum timeout in seconds */
   maxTimeoutSeconds: number;
+  /** Resource URL being paid for */
+  resource?: string;
+  /** Human-readable description */
+  description?: string;
+  /** Output schema for structured responses */
+  outputSchema?: Record<string, unknown>;
   /** Extra data */
-  extra: Record<string, unknown>;
+  extra?: Record<string, unknown>;
 }
 
 /**

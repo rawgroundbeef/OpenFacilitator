@@ -412,6 +412,27 @@ export function createPaymentMiddleware(config: PaymentMiddlewareConfig) {
       const rawRequirements = await config.getRequirements(req);
       const requirementsArray = Array.isArray(rawRequirements) ? rawRequirements : [rawRequirements];
 
+      // Build x402 v2 accepts array once for all 402 responses (normalizes v1 → v2)
+      const accepts = requirementsArray.map((requirements) => {
+        const extra: Record<string, unknown> = {
+          ...requirements.extra,
+        };
+        if (config.refundProtection) {
+          extra.supportsRefunds = true;
+        }
+
+        return {
+          scheme: requirements.scheme,
+          network: requirements.network,
+          // Normalize v1 maxAmountRequired → v2 amount
+          amount: 'maxAmountRequired' in requirements ? requirements.maxAmountRequired : requirements.amount,
+          asset: requirements.asset,
+          payTo: requirements.payTo,
+          maxTimeoutSeconds: requirements.maxTimeoutSeconds || 300,
+          ...(Object.keys(extra).length > 0 ? { extra } : {}),
+        };
+      });
+
       // Check for X-PAYMENT header
       const paymentHeader = req.headers['x-payment'];
       const paymentString = Array.isArray(paymentHeader) ? paymentHeader[0] : paymentHeader;
@@ -421,42 +442,6 @@ export function createPaymentMiddleware(config: PaymentMiddlewareConfig) {
         if (config.on402) {
           await config.on402(req, res, requirementsArray);
         } else {
-          // Build accepts array with extra metadata
-          const accepts = requirementsArray.map((requirements) => {
-            const extra: Record<string, unknown> = {
-              ...requirements.extra,
-            };
-            if (config.refundProtection) {
-              extra.supportsRefunds = true;
-            }
-
-            // Handle both v1 and v2 payment requirements
-            if ('maxAmountRequired' in requirements) {
-              // PaymentRequirementsV1
-              return {
-                scheme: requirements.scheme,
-                network: requirements.network,
-                maxAmountRequired: requirements.maxAmountRequired,
-                asset: requirements.asset,
-                payTo: requirements.payTo,
-                resource: requirements.resource || req.url,
-                description: requirements.description,
-                ...(Object.keys(extra).length > 0 ? { extra } : {}),
-              };
-            } else {
-              // PaymentRequirementsV2
-              return {
-                scheme: requirements.scheme,
-                network: requirements.network,
-                amount: requirements.amount,
-                asset: requirements.asset,
-                payTo: requirements.payTo,
-                maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-                extra: { ...extra, ...requirements.extra },
-              };
-            }
-          });
-
           res.status(402).json({
             x402Version: 2,
             error: 'Payment Required',
@@ -490,8 +475,10 @@ export function createPaymentMiddleware(config: PaymentMiddlewareConfig) {
       const verifyResult = await facilitator.verify(paymentPayload, requirements);
       if (!verifyResult.isValid) {
         res.status(402).json({
+          x402Version: 2,
           error: 'Payment verification failed',
           reason: verifyResult.invalidReason,
+          accepts,
         });
         return;
       }
@@ -500,8 +487,10 @@ export function createPaymentMiddleware(config: PaymentMiddlewareConfig) {
       const settleResult = await facilitator.settle(paymentPayload, requirements);
       if (!settleResult.success) {
         res.status(402).json({
+          x402Version: 2,
           error: 'Payment settlement failed',
           reason: settleResult.errorReason,
+          accepts,
         });
         return;
       }
@@ -620,46 +609,31 @@ export function honoPaymentMiddleware(config: HonoPaymentConfig) {
     const rawRequirements = await config.getRequirements(c);
     const requirementsArray = Array.isArray(rawRequirements) ? rawRequirements : [rawRequirements];
 
+    // Build x402 v2 accepts array once for all 402 responses (normalizes v1 → v2)
+    const accepts = requirementsArray.map((requirements) => {
+      const extra: Record<string, unknown> = {
+        ...requirements.extra,
+      };
+      if (config.refundProtection) {
+        extra.supportsRefunds = true;
+      }
+
+      return {
+        scheme: requirements.scheme,
+        network: requirements.network,
+        // Normalize v1 maxAmountRequired → v2 amount
+        amount: 'maxAmountRequired' in requirements ? requirements.maxAmountRequired : requirements.amount,
+        asset: requirements.asset,
+        payTo: requirements.payTo,
+        maxTimeoutSeconds: requirements.maxTimeoutSeconds || 300,
+        ...(Object.keys(extra).length > 0 ? { extra } : {}),
+      };
+    });
+
     // Check for X-PAYMENT header
     const paymentString = c.req.header('x-payment');
 
     if (!paymentString) {
-      // Build accepts array with extra metadata
-      const accepts = requirementsArray.map((requirements) => {
-        const extra: Record<string, unknown> = {
-          ...requirements.extra,
-        };
-        if (config.refundProtection) {
-          extra.supportsRefunds = true;
-        }
-
-        // Handle both v1 and v2 payment requirements
-        if ('maxAmountRequired' in requirements) {
-          // PaymentRequirementsV1
-          return {
-            scheme: requirements.scheme,
-            network: requirements.network,
-            maxAmountRequired: requirements.maxAmountRequired,
-            asset: requirements.asset,
-            payTo: requirements.payTo,
-            resource: requirements.resource || c.req.url,
-            description: requirements.description,
-            ...(Object.keys(extra).length > 0 ? { extra } : {}),
-          };
-        } else {
-          // PaymentRequirementsV2
-          return {
-            scheme: requirements.scheme,
-            network: requirements.network,
-            amount: requirements.amount,
-            asset: requirements.asset,
-            payTo: requirements.payTo,
-            maxTimeoutSeconds: requirements.maxTimeoutSeconds,
-            extra: { ...extra, ...requirements.extra },
-          };
-        }
-      });
-
       return c.json({
         x402Version: 2,
         error: 'Payment Required',
@@ -690,8 +664,10 @@ export function honoPaymentMiddleware(config: HonoPaymentConfig) {
     const verifyResult = await facilitator.verify(paymentPayload, requirements);
     if (!verifyResult.isValid) {
       return c.json({
+        x402Version: 2,
         error: 'Payment verification failed',
         reason: verifyResult.invalidReason,
+        accepts,
       }, 402);
     }
 
@@ -699,8 +675,10 @@ export function honoPaymentMiddleware(config: HonoPaymentConfig) {
     const settleResult = await facilitator.settle(paymentPayload, requirements);
     if (!settleResult.success) {
       return c.json({
+        x402Version: 2,
         error: 'Payment settlement failed',
         reason: settleResult.errorReason,
+        accepts,
       }, 402);
     }
 
