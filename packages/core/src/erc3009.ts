@@ -408,15 +408,23 @@ export async function executeERC3009Settlement(
       ],
     });
 
-    // Get current gas price
-    const gasPrice = await publicClient.getGasPrice();
-    console.log('[ERC3009Settlement] Gas price:', gasPrice.toString());
+    // Get current gas prices - use EIP-1559 for Base and other L2s
+    // Legacy gasPrice transactions can be deprioritized or dropped on OP Stack chains
+    const [baseFee, priorityFee] = await Promise.all([
+      publicClient.getGasPrice(),
+      publicClient.estimateMaxPriorityFeePerGas().catch(() => 1_000_000n), // fallback 1 gwei
+    ]);
+    // Add 20% buffer to base fee and 50% buffer to priority fee for reliability
+    const maxPriorityFeePerGas = (priorityFee * 150n) / 100n;
+    const maxFeePerGas = (baseFee * 120n) / 100n + maxPriorityFeePerGas;
+    console.log('[ERC3009Settlement] Gas prices: baseFee=%s, priorityFee=%s, maxFee=%s',
+      baseFee.toString(), maxPriorityFeePerGas.toString(), maxFeePerGas.toString());
 
     // Check facilitator ETH balance
     const ethBalance = await publicClient.getBalance({ address: account.address });
     console.log('[ERC3009Settlement] Facilitator ETH balance:', ethBalance.toString());
-    
-    if (ethBalance < 100000n * gasPrice) {
+
+    if (ethBalance < 100000n * maxFeePerGas) {
       console.error('[ERC3009Settlement] Insufficient ETH for gas!');
       releaseNonce(chainId, authorization.from, authorization.nonce);
       return {
@@ -442,11 +450,13 @@ export async function executeERC3009Settlement(
     console.log('[ERC3009Settlement] Using nonce from NonceManager:', nonce);
 
     // Send transaction with explicit nonce and retry logic for errors
+    // Using EIP-1559 (maxFeePerGas + maxPriorityFeePerGas) for better inclusion on L2s
     console.log('[ERC3009Settlement] Sending transaction...');
     let hash: Hex;
     let attempts = 0;
     const maxAttempts = 3;
-    let currentGasPrice = gasPrice;
+    let currentMaxFeePerGas = maxFeePerGas;
+    let currentMaxPriorityFeePerGas = maxPriorityFeePerGas;
     let currentNonce = nonce;
     let txSent = false;
 
@@ -456,7 +466,8 @@ export async function executeERC3009Settlement(
           to: tokenAddress,
           data,
           gas: 100000n, // ERC-3009 transfers use ~65k gas, 100k is safe
-          gasPrice: currentGasPrice,
+          maxFeePerGas: currentMaxFeePerGas,
+          maxPriorityFeePerGas: currentMaxPriorityFeePerGas,
           nonce: currentNonce,
         });
         txSent = true;
@@ -482,9 +493,10 @@ export async function executeERC3009Settlement(
         // Check if it's an underpriced error (replacement tx needed)
         if (errMsgLower.includes('underpriced') || errMsgLower.includes('replacement')) {
           if (attempts < maxAttempts) {
-            // Bump gas price by 20% and retry with same nonce
-            currentGasPrice = (currentGasPrice * 120n) / 100n;
-            console.warn(`[ERC3009Settlement] Retry ${attempts}/${maxAttempts}: Underpriced, bumping gas to ${currentGasPrice}`);
+            // Bump gas prices by 25% and retry with same nonce
+            currentMaxFeePerGas = (currentMaxFeePerGas * 125n) / 100n;
+            currentMaxPriorityFeePerGas = (currentMaxPriorityFeePerGas * 125n) / 100n;
+            console.warn(`[ERC3009Settlement] Retry ${attempts}/${maxAttempts}: Underpriced, bumping maxFee to ${currentMaxFeePerGas}`);
             continue;
           }
         }
@@ -561,20 +573,42 @@ export async function executeERC3009Settlement(
     console.error('[ERC3009Settlement] Error:', error);
     const errMsg = error instanceof Error ? error.message : 'Unknown error during settlement';
 
-    // If this was a receipt timeout, the tx WAS broadcast and may still confirm.
-    // Sync the NonceManager with the chain so subsequent requests don't stack
-    // behind an unconfirmed nonce and cascade-timeout.
+    // If this was a receipt timeout, check if tx actually made it to the chain
+    // or was dropped. Reset nonce accordingly to prevent gaps.
     const isReceiptTimeout = errMsg.includes('Timed out while waiting for transaction');
     if (isReceiptTimeout) {
-      console.warn('[ERC3009Settlement] Receipt timeout — tx was broadcast, syncing nonce manager');
+      console.warn('[ERC3009Settlement] Receipt timeout — checking if tx exists on chain');
       try {
         const account = privateKeyToAccount(facilitatorPrivateKey);
         const cfg = chainConfigs[chainId];
         if (cfg) {
           const pc = createPublicClient({ chain: cfg.chain, transport: http(cfg.rpcUrl) });
-          await nonceManager.resetNonce(chainId, account.address, () =>
-            pc.getTransactionCount({ address: account.address, blockTag: 'pending' })
-          );
+
+          // Check if the transaction actually exists in mempool/chain
+          const txHash = (error as { hash?: Hex }).hash;
+          let txExists = false;
+          if (txHash) {
+            const tx = await pc.getTransaction({ hash: txHash }).catch(() => null);
+            txExists = tx !== null;
+            console.log(`[ERC3009Settlement] Transaction ${txHash} exists: ${txExists}`);
+          }
+
+          // Get both latest (confirmed) and pending nonces
+          const [latestNonce, pendingNonce] = await Promise.all([
+            pc.getTransactionCount({ address: account.address, blockTag: 'latest' }),
+            pc.getTransactionCount({ address: account.address, blockTag: 'pending' }),
+          ]);
+          console.log(`[ERC3009Settlement] Chain nonces - latest: ${latestNonce}, pending: ${pendingNonce}`);
+
+          // If tx doesn't exist OR latest === pending (nothing pending), reset to latest
+          // This prevents nonce gaps from dropped transactions
+          if (!txExists || latestNonce === pendingNonce) {
+            console.warn('[ERC3009Settlement] TX was dropped or no pending txs, resetting to latest nonce');
+            await nonceManager.resetNonce(chainId, account.address, () => Promise.resolve(latestNonce));
+          } else {
+            // TX exists in mempool, sync to pending
+            await nonceManager.resetNonce(chainId, account.address, () => Promise.resolve(pendingNonce));
+          }
         }
       } catch (syncErr) {
         console.error('[ERC3009Settlement] Failed to sync nonce after timeout:', syncErr);
@@ -625,5 +659,75 @@ export async function getWalletBalance(
   const formatted = (Number(balance) / 1e18).toFixed(6);
 
   return { balance, formatted };
+}
+
+/**
+ * Get nonce status for a wallet on a chain (for debugging/admin)
+ */
+export async function getNonceStatus(
+  chainId: number,
+  address: Address
+): Promise<{
+  latestNonce: number;
+  pendingNonce: number;
+  managerNonce: number | undefined;
+  hasPendingTxs: boolean;
+  gap: number;
+}> {
+  const config = chainConfigs[chainId];
+  if (!config) {
+    throw new Error(`Unsupported chain ID: ${chainId}`);
+  }
+
+  const publicClient = createPublicClient({
+    chain: config.chain,
+    transport: http(config.rpcUrl),
+  });
+
+  const [latestNonce, pendingNonce] = await Promise.all([
+    publicClient.getTransactionCount({ address, blockTag: 'latest' }),
+    publicClient.getTransactionCount({ address, blockTag: 'pending' }),
+  ]);
+
+  // Access the internal nonce from manager (for debugging)
+  const key = `${chainId}:${address.toLowerCase()}`;
+  const managerNonce = (nonceManager as unknown as { nonces: Map<string, number> }).nonces.get(key);
+
+  return {
+    latestNonce,
+    pendingNonce,
+    managerNonce,
+    hasPendingTxs: pendingNonce > latestNonce,
+    gap: managerNonce !== undefined ? managerNonce - latestNonce : 0,
+  };
+}
+
+/**
+ * Force reset the nonce manager to sync with chain state (admin function)
+ */
+export async function forceResetNonce(
+  chainId: number,
+  address: Address
+): Promise<{ previousNonce: number | undefined; newNonce: number }> {
+  const config = chainConfigs[chainId];
+  if (!config) {
+    throw new Error(`Unsupported chain ID: ${chainId}`);
+  }
+
+  const publicClient = createPublicClient({
+    chain: config.chain,
+    transport: http(config.rpcUrl),
+  });
+
+  const key = `${chainId}:${address.toLowerCase()}`;
+  const previousNonce = (nonceManager as unknown as { nonces: Map<string, number> }).nonces.get(key);
+
+  const latestNonce = await publicClient.getTransactionCount({ address, blockTag: 'latest' });
+
+  await nonceManager.resetNonce(chainId, address, () => Promise.resolve(latestNonce));
+
+  console.log(`[NonceManager] Admin force reset: ${previousNonce} -> ${latestNonce}`);
+
+  return { previousNonce, newNonce: latestNonce };
 }
 

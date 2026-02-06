@@ -87,14 +87,16 @@ import {
   SUPPORTED_REFUND_NETWORKS,
 } from '../services/refund-wallet.js';
 import { getDatabase } from '../db/index.js';
-import { 
-  defaultTokens, 
-  getWalletAddress, 
+import {
+  defaultTokens,
+  getWalletAddress,
   getWalletBalance,
   generateSolanaKeypair,
   getSolanaPublicKey,
   getSolanaBalance,
   isValidSolanaPrivateKey,
+  getNonceStatus,
+  forceResetNonce,
 } from '@openfacilitator/core';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
@@ -3565,6 +3567,91 @@ router.get('/facilitators/:id/refunds/overview', requireAuth, async (req: Reques
   } catch (error) {
     console.error('Get refunds overview error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== NONCE MANAGEMENT (ADMIN) ====================
+
+/**
+ * Get nonce status for a facilitator's EVM wallet
+ * GET /api/admin/facilitators/:id/nonce-status/:chainId
+ */
+router.get('/facilitators/:id/nonce-status/:chainId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { chainId } = req.params;
+
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (!facilitator.encrypted_private_key) {
+      res.status(400).json({ error: 'Facilitator does not have an EVM wallet configured' });
+      return;
+    }
+
+    const chainIdNum = parseInt(chainId, 10);
+    if (isNaN(chainIdNum)) {
+      res.status(400).json({ error: 'Invalid chain ID' });
+      return;
+    }
+
+    const privateKey = decryptPrivateKey(facilitator.encrypted_private_key);
+    const address = getWalletAddress(privateKey as `0x${string}`);
+    const status = await getNonceStatus(chainIdNum, address);
+
+    res.json({
+      chainId: chainIdNum,
+      address,
+      ...status,
+    });
+  } catch (error) {
+    console.error('Get nonce status error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
+  }
+});
+
+/**
+ * Force reset nonce manager for a facilitator's EVM wallet
+ * POST /api/admin/facilitators/:id/reset-nonce/:chainId
+ */
+router.post('/facilitators/:id/reset-nonce/:chainId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { chainId } = req.params;
+
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (!facilitator.encrypted_private_key) {
+      res.status(400).json({ error: 'Facilitator does not have an EVM wallet configured' });
+      return;
+    }
+
+    const chainIdNum = parseInt(chainId, 10);
+    if (isNaN(chainIdNum)) {
+      res.status(400).json({ error: 'Invalid chain ID' });
+      return;
+    }
+
+    const privateKey = decryptPrivateKey(facilitator.encrypted_private_key);
+    const address = getWalletAddress(privateKey as `0x${string}`);
+    const result = await forceResetNonce(chainIdNum, address);
+
+    console.log(`[Admin] Nonce reset for ${address} on chain ${chainIdNum}: ${result.previousNonce} -> ${result.newNonce}`);
+
+    res.json({
+      chainId: chainIdNum,
+      address,
+      ...result,
+      message: `Nonce reset from ${result.previousNonce ?? 'uninitialized'} to ${result.newNonce}`,
+    });
+  } catch (error) {
+    console.error('Reset nonce error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
   }
 });
 
