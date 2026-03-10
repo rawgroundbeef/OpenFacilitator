@@ -24,6 +24,11 @@ import { getChainIdFromNetwork, getNetworkFromChainId, getCaip2FromNetwork, defa
 import { executeERC3009Settlement } from './erc3009.js';
 import { executeSolanaSettlement } from './solana.js';
 import { executeStacksSettlement } from './stacks.js';
+import {
+  deserializeSolanaTransaction,
+  validateSolanaTransaction,
+} from './solana-validation.js';
+import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 
 /**
  * Custom chain definitions for chains not in viem
@@ -234,9 +239,8 @@ export class Facilitator {
         };
       }
 
-      // Handle Solana verification differently
+      // Handle Solana verification with full instruction validation
       if (chainId === 'solana' || chainId === 'solana-devnet') {
-        // Solana payloads have transaction in payload.payload.transaction
         const solanaPayload = payload.payload || payload;
         if (!solanaPayload.transaction) {
           return {
@@ -244,11 +248,49 @@ export class Facilitator {
             invalidReason: 'Missing transaction in Solana payment payload',
           };
         }
-        // For Solana, we trust the pre-signed transaction
-        // The actual verification happens during settlement
+
+        // Deserialize the transaction
+        let transaction: Transaction | VersionedTransaction;
+        try {
+          transaction = deserializeSolanaTransaction(solanaPayload.transaction);
+        } catch (e) {
+          return {
+            isValid: false,
+            invalidReason: `Failed to deserialize Solana transaction: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          };
+        }
+
+        // Get the facilitator's Solana public key from the transaction's fee payer (index 0).
+        // ownerAddress may be an EVM hex address for multi-chain facilitators,
+        // but the fee payer in the transaction is always the Solana address.
+        let facilitatorPubkey: PublicKey;
+        if (transaction instanceof VersionedTransaction) {
+          facilitatorPubkey = transaction.message.staticAccountKeys[0];
+        } else {
+          if (!transaction.feePayer) {
+            return {
+              isValid: false,
+              invalidReason: 'Transaction missing fee payer',
+            };
+          }
+          facilitatorPubkey = transaction.feePayer;
+        }
+        const validationResult = validateSolanaTransaction(transaction, facilitatorPubkey, {
+          amount: getRequiredAmount(requirements),
+          asset: requirements.asset,
+          payTo: requirements.payTo,
+        });
+
+        if (!validationResult.valid) {
+          return {
+            isValid: false,
+            invalidReason: validationResult.error || 'Transaction validation failed',
+          };
+        }
+
         return {
           isValid: true,
-          payer: 'solana-payer', // Payer is embedded in the transaction
+          payer: validationResult.payer || 'solana-payer',
         };
       }
 

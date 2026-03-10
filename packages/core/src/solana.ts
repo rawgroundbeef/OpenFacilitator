@@ -24,6 +24,7 @@ import {
   getAccount,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
+import { validateSolanaTransaction } from './solana-validation.js';
 
 /**
  * Get Solana RPC URL for a network
@@ -127,6 +128,17 @@ export async function executeSolanaSettlement(
         };
       }
     }
+
+    // Defense-in-depth: validate transaction instructions before signing
+    const validationResult = validateSolanaTransaction(transaction, facilitatorKeypair.publicKey);
+    if (!validationResult.valid) {
+      console.error('[SolanaSettlement] Transaction validation FAILED:', validationResult.error);
+      return {
+        success: false,
+        errorMessage: `Transaction validation failed: ${validationResult.error}`,
+      };
+    }
+    console.log('[SolanaSettlement] Transaction validation passed');
 
     // Send the transaction
     let signature: string;
