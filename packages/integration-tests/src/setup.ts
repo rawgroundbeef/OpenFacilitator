@@ -6,7 +6,7 @@ config();
 // Test configuration
 export const TEST_CONFIG = {
   // Endpoints to test
-  FREE_ENDPOINT: 'https://pay.openfacilitator.io',
+  FREE_ENDPOINT: process.env.TEST_ENDPOINT || 'https://pay.openfacilitator.io',
   CUSTOM_DOMAIN: process.env.TEST_CUSTOM_DOMAIN || 'https://pay.x402.jobs',
   
   // Test wallet (Solana) - set via env or use a test wallet
