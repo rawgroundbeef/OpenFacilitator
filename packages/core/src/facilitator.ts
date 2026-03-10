@@ -260,8 +260,21 @@ export class Facilitator {
           };
         }
 
-        // Validate all transaction instructions (4 layers)
-        const facilitatorPubkey = new PublicKey(this.config.ownerAddress);
+        // Get the facilitator's Solana public key from the transaction's fee payer (index 0).
+        // ownerAddress may be an EVM hex address for multi-chain facilitators,
+        // but the fee payer in the transaction is always the Solana address.
+        let facilitatorPubkey: PublicKey;
+        if (transaction instanceof VersionedTransaction) {
+          facilitatorPubkey = transaction.message.staticAccountKeys[0];
+        } else {
+          if (!transaction.feePayer) {
+            return {
+              isValid: false,
+              invalidReason: 'Transaction missing fee payer',
+            };
+          }
+          facilitatorPubkey = transaction.feePayer;
+        }
         const validationResult = validateSolanaTransaction(transaction, facilitatorPubkey, {
           amount: getRequiredAmount(requirements),
           asset: requirements.asset,
