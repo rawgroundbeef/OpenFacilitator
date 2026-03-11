@@ -42,6 +42,8 @@ import bs58 from 'bs58';
 // ============================================
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
+const MEMO_PROGRAM_V1_ID = new PublicKey('Memo1UhkJBfCR6MNLc2TcVvLBYhiC9TZSfN7CEcDuiw');
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 const TEST_AMOUNT = BigInt(10000); // $0.01 USDC (6 decimals)
 
@@ -224,6 +226,54 @@ describe('solana transaction validation - mainnet integration', () => {
           createTransferInstruction(
             payerATA, payToATA, payerPubkey, TEST_AMOUNT, [], TOKEN_PROGRAM_ID,
           ),
+        ],
+        signers: [payerKeypair],
+      });
+
+      const result = await facilitator.verify(makePayload(tx, payerPubkey, payTo), requirements);
+
+      expect(result.isValid).toBe(true);
+      expect(result.payer).toBe(payerPubkey.toBase58());
+    });
+
+    it('should verify transaction with SPL Memo v2 (x402/svm client pattern)', async () => {
+      const tx = buildTransaction({
+        feePayer: feePayerPubkey,
+        blockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 }),
+          createTransferInstruction(
+            payerATA, payToATA, payerPubkey, TEST_AMOUNT, [], TOKEN_PROGRAM_ID,
+          ),
+          // Memo instruction added automatically by @x402/svm during transaction construction
+          new TransactionInstruction({
+            programId: MEMO_PROGRAM_ID,
+            keys: [{ pubkey: payerPubkey, isSigner: true, isWritable: false }],
+            data: Buffer.from('x402 payment', 'utf-8'),
+          }),
+        ],
+        signers: [payerKeypair],
+      });
+
+      const result = await facilitator.verify(makePayload(tx, payerPubkey, payTo), requirements);
+
+      expect(result.isValid).toBe(true);
+      expect(result.payer).toBe(payerPubkey.toBase58());
+    });
+
+    it('should verify transaction with SPL Memo v1', async () => {
+      const tx = buildTransaction({
+        feePayer: feePayerPubkey,
+        blockhash,
+        instructions: [
+          createTransferInstruction(
+            payerATA, payToATA, payerPubkey, TEST_AMOUNT, [], TOKEN_PROGRAM_ID,
+          ),
+          new TransactionInstruction({
+            programId: MEMO_PROGRAM_V1_ID,
+            keys: [],
+            data: Buffer.from('payment-ref:abc123', 'utf-8'),
+          }),
         ],
         signers: [payerKeypair],
       });
