@@ -64,12 +64,18 @@ interface TransferInfo {
 // Constants
 // ============================================
 
+/** SPL Memo program (v1 and v2) — attaches arbitrary text to transactions */
+const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+const MEMO_PROGRAM_V1_ID = 'Memo1UhkJBfCR6MNLc2TcVvLBYhiC9TZSfN7CEcDuiw';
+
 /** Programs allowed in facilitator-signed transactions */
 const ALLOWED_PROGRAM_IDS = new Set([
   TOKEN_PROGRAM_ID.toBase58(),
   TOKEN_2022_PROGRAM_ID.toBase58(),
   ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(),
   ComputeBudgetProgram.programId.toBase58(),
+  MEMO_PROGRAM_ID,
+  MEMO_PROGRAM_V1_ID,
 ]);
 
 /** Token programs that require instruction type validation */
