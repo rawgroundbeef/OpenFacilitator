@@ -43,7 +43,6 @@ import { TransactionsTable } from '@/components/transactions-table';
 import { SettlementActivityChart } from '@/components/settlement-activity-chart';
 import { WebhooksSection } from '@/components/webhooks-section';
 import { ProductsSection } from '@/components/products-section';
-import { StorefrontsSection } from '@/components/storefronts-section';
 import { RefundsSection } from '@/components/refunds-section';
 import { FacilitatorRewardsSection } from '@/components/facilitator-rewards-section';
 
@@ -57,7 +56,7 @@ function formatCurrency(value: string | number): string {
   }).format(num || 0);
 }
 
-type Tab = 'transactions' | 'products' | 'storefronts' | 'webhooks' | 'refunds' | 'rewards' | 'settings';
+type Tab = 'transactions' | 'products' | 'webhooks' | 'refunds' | 'rewards' | 'settings';
 
 function FaviconImage({ url, favicon, size = 'md' }: { url: string; favicon?: string | null; size?: 'md' | 'lg' }) {
   const [hasError, setHasError] = useState(false);
@@ -444,17 +443,6 @@ export default function FacilitatorDetailPage() {
               Products
             </button>
             <button
-              onClick={() => setActiveTab('storefronts')}
-              className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-                activeTab === 'storefronts'
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Storefronts
-            </button>
-            <button
               onClick={() => setActiveTab('webhooks')}
               className={cn(
                 'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
@@ -504,8 +492,6 @@ export default function FacilitatorDetailPage() {
         {/* Tab Content */}
         {activeTab === 'products' ? (
           <ProductsSection facilitatorId={id} facilitator={facilitator} />
-        ) : activeTab === 'storefronts' ? (
-          <StorefrontsSection facilitatorId={id} facilitator={facilitator} />
         ) : activeTab === 'webhooks' ? (
           <WebhooksSection facilitatorId={id} facilitator={facilitator} />
         ) : activeTab === 'refunds' ? (

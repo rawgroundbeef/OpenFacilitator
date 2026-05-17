@@ -4,8 +4,8 @@ milestone: v1.3
 milestone_name: Trim & Audit
 status: executing
 stopped_at: Phase 22 context gathered
-last_updated: "2026-05-17T12:57:59.696Z"
-last_activity: 2026-05-17 -- Phase 22 planning complete
+last_updated: "2026-05-17T13:15:52.094Z"
+last_activity: 2026-05-17 -- Phase 22 execution started
 progress:
   total_phases: 4
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-16)
 
 **Core value:** Multi-tenant crypto payment facilitator with multi-chain subscription management. (Note: rewards framing is being removed in v1.3; PROJECT.md Core Value will be rewritten in Phase 24.)
-**Current focus:** Phase 22 ready to plan — Storefronts Removal
+**Current focus:** Phase 22 — storefronts-removal
 
 ## Current Position
 
-Phase: 22 of 25 (Storefronts Removal)
-Plan: — (not yet planned)
-Status: Ready to execute
-Last activity: 2026-05-17 -- Phase 22 planning complete
+Phase: 22 (storefronts-removal) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 22
+Last activity: 2026-05-17 -- Phase 22 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
