@@ -474,50 +474,6 @@ export interface ProductDetailResponse extends Product {
 /** @deprecated Use ProductDetailResponse instead */
 export type PaymentLinkDetailResponse = ProductDetailResponse;
 
-// Storefronts (product collections)
-export interface Storefront {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  active: boolean;
-  url: string;
-  productCount?: number;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface StorefrontProduct {
-  id: string;
-  name: string;
-  description: string | null;
-  imageUrl: string | null;
-  amount: string;
-  asset: string;
-  network: string;
-  active: boolean;
-}
-
-export interface CreateStorefrontRequest {
-  name: string;
-  slug: string;
-  description?: string;
-  imageUrl?: string;
-}
-
-export interface StorefrontsResponse {
-  storefronts: Storefront[];
-  stats: {
-    totalStorefronts: number;
-    activeStorefronts: number;
-  };
-}
-
-export interface StorefrontDetailResponse extends Storefront {
-  products: StorefrontProduct[];
-}
-
 // Refund types
 export interface RefundConfig {
   enabled: boolean;
@@ -1227,58 +1183,6 @@ class ApiClient {
 
   async deleteProxyUrl(facilitatorId: string, urlId: string): Promise<void> {
     return this.request(`/api/admin/facilitators/${facilitatorId}/urls/${urlId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Storefronts (product collections)
-  async getStorefronts(facilitatorId: string): Promise<StorefrontsResponse> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts`);
-  }
-
-  async createStorefront(facilitatorId: string, data: CreateStorefrontRequest): Promise<Storefront> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async getStorefront(facilitatorId: string, storefrontId: string): Promise<StorefrontDetailResponse> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts/${storefrontId}`);
-  }
-
-  async updateStorefront(
-    facilitatorId: string,
-    storefrontId: string,
-    data: Partial<{
-      name: string;
-      slug: string;
-      description: string | null;
-      imageUrl: string | null;
-      active: boolean;
-    }>
-  ): Promise<Storefront> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts/${storefrontId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteStorefront(facilitatorId: string, storefrontId: string): Promise<void> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts/${storefrontId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async addProductToStorefront(facilitatorId: string, storefrontId: string, productId: string): Promise<void> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts/${storefrontId}/products`, {
-      method: 'POST',
-      body: JSON.stringify({ productId }),
-    });
-  }
-
-  async removeProductFromStorefront(facilitatorId: string, storefrontId: string, productId: string): Promise<void> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/storefronts/${storefrontId}/products/${productId}`, {
       method: 'DELETE',
     });
   }
