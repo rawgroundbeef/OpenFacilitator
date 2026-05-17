@@ -122,7 +122,7 @@ export interface ProductRecord {
   facilitator_id: string;
   name: string;
   description: string | null;
-  image_url: string | null;    // Product image for storefront display
+  image_url: string | null;    // Product image URL
   slug: string | null;         // URL slug (e.g., /pay/my-product)
   link_type: 'payment' | 'redirect' | 'proxy';  // What happens after payment
   amount: string;              // Atomic units (e.g., "1000000" for $1 USDC)
@@ -156,32 +156,6 @@ export interface ProductPaymentRecord {
   status: 'pending' | 'success' | 'failed';
   error_message: string | null;
   metadata: string;            // JSON object with submitted field values
-  created_at: string;
-}
-
-/**
- * Storefront database record
- * A collection of products (catalog/store)
- */
-export interface StorefrontRecord {
-  id: string;
-  facilitator_id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  image_url: string | null;
-  active: number;              // 0 = inactive, 1 = active
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Storefront-Product join record (many-to-many)
- */
-export interface StorefrontProductRecord {
-  storefront_id: string;
-  product_id: string;
-  position: number;            // For ordering products in storefront
   created_at: string;
 }
 

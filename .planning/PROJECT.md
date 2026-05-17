@@ -15,6 +15,22 @@ Users who process volume through OpenFacilitator get rewarded with $OPEN tokens.
 - v1.1 SDK & Docs (2026-01-21)
 - v1.2 Subscription Wallet Overhaul (2026-01-23)
 
+## Current Milestone: v1.3 Trim & Audit
+
+**Goal:** Remove unused features ($OPEN rewards program + storefronts) and run a full security audit on the slimmed surface area.
+
+**Target work:**
+- Remove storefronts (admin/facilitator route surface, db/storefronts, dashboard section)
+- Remove $OPEN rewards program (DB tables, /rewards/* routes, dashboard rewards UI, 2x multiplier, claims engine, SPL transfer code, signature verification flows, rewards env vars)
+- Security audit of the remaining surface area (auth, payments, signing, multi-tenant isolation)
+
+**Why these removals:** Neither feature found product-market fit. Removing them shrinks the attack surface before the security audit and lets the project refocus on what's working (multi-tenant facilitator + subscriptions).
+
+**Constraints:**
+- Keep multi-chain wallet infra (v1.2 subscriptions depend on it)
+- `## Core Value` will be rewritten as part of this milestone — facilitator + subscriptions is the new pitch
+- Audit runs LAST so it isn't wasted on dead code
+
 **Codebase:**
 - Dashboard: ~18,000 LOC TypeScript/React
 - Server: SQLite + Better Auth + Hono
@@ -128,5 +144,22 @@ Users who process volume through OpenFacilitator get rewarded with $OPEN tokens.
 | node-cron for billing | Built-in, no external scheduler needed | ✓ Good |
 | Notification duplicate prevention | 24h/72h windows prevent spam | ✓ Good |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-01-23 after v1.2 milestone*
+*Last updated: 2026-05-16 — v1.3 Trim & Audit milestone started*
