@@ -84,6 +84,8 @@ must_haves:
       to: ".planning/ROADMAP.md"
       via: "Traceability table now maps SEC-01..SEC-06 to Phase 24 (matches ROADMAP §Phase 24)"
       pattern: "Phase 24"
+  discipline:
+    task_count_justification: "Plan 1 has 9 tasks touching 11 files. This is above the standard 2-3 task target but is required by the audit-doc-atomic-commit pattern established in Phase 22 D-05 and Phase 23 D-04: every SEC-NN section (5 sections) plus CONCERNS re-validation (1 task) plus tooling scaffold (1 task) plus pnpm audit capture (1 task) plus REQUIREMENTS.md drift fix (1 task) plus the final atomic commit gate (1 task) = 9 atomic deliverables that MUST land in one commit. Splitting would violate D-13 atomicity. Task count is justified by the intrinsic multi-deliverable structure of the audit."
 ---
 
 <objective>
@@ -495,7 +497,7 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
     Plan 2 remediates findings; Plan 1 enumerates.
   </action>
   <verify>
-    <automated>SEC02_ROWS=$(awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| (createFacilitator|getFacilitatorById|getFacilitatorBySubdomain|createTransaction|getTransactionById|createProduct|getProductById|createWebhook|getWebhookById|createProxyUrl|getProxyUrlById|createResourceOwner|createRefundConfig|createRefundWallet|hashApiKey|createRegisteredServer|createClaim|getClaimById|createSubscription|createSubscriptionPayment|createUserWallet|getUserPreferences|createNotification|createPendingFacilitator) '); echo "SEC-02 enumeration row count: $SEC02_ROWS"; [ "$SEC02_ROWS" -ge 93 ] && grep -q "Scope Classification Key" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "products.ts:447" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md</automated>
+    <automated>SEC02_ROWS=$(awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| [a-zA-Z][a-zA-Z0-9_]+ +\| [a-z0-9-]+\.ts:[0-9]+'); echo "SEC-02 enumeration row count: $SEC02_ROWS"; [ "$SEC02_ROWS" -ge 93 ] && grep -q "Scope Classification Key" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "products.ts:447" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md</automated>
   </verify>
   <done>
     §SEC-02 enumeration table contains ≥93 rows spanning all 14 DB modules (excluding `index.ts` infrastructure). Scope classification key is present. Findings table below enumeration captures the "unclear" by-id queries as candidate HIGH/MEDIUM findings. Deprecated aliases at products.ts:447 noted.
@@ -652,11 +654,20 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
 
     **Methodology** — Enumerate every Express handler with `requireAuth` and `zod` presence flags. Cross-reference against `tools/security-audit/grep/sec05-handlers-without-zod.sh` and `tools/security-audit/grep/sec05-handlers-without-auth.sh`. Inspect `internal-webhooks.ts` signature verification for known bugs.
 
-    **Handler Enumeration table (≥124 rows)** with columns `| Router | Path | Method | File:Line | requireAuth? | zod? | Notes |`. Per RESEARCH.md §2: facilitatorRouter (8) + adminRouter (71) + publicRouter (24) + subscriptionsRouter (7) + notificationsRouter (4) + statsRouter (7) + discoveryRouter (2) + internalWebhooksRouter (1) = 124 minimum.
+    **Handler Enumeration table (≥124 rows)** — table MUST use exactly this column header so the row-count gate can match the `Method` column shape:
+
+    ```
+    | Router | Path | Method | File:Line | requireAuth? | zod? | Notes |
+    |--------|------|--------|-----------|--------------|------|-------|
+    ```
+
+    The `Method` column MUST contain one of `GET`, `POST`, `PUT`, `PATCH`, `DELETE` (uppercase, no surrounding decoration) so the row-count regex `^\| [^|]+ +\| [^|]+ +\| (GET|POST|PUT|PATCH|DELETE) +\|` matches. Per RESEARCH.md §2: facilitatorRouter (8) + adminRouter (71) + publicRouter (24) + subscriptionsRouter (7) + notificationsRouter (4) + statsRouter (7) + discoveryRouter (2) + internalWebhooksRouter (1) = 124 minimum.
+
+    Immediately after the enumeration table, start the findings section with the heading `### Findings` (this is the awk-range terminator that the row-count gate uses — without it the gate runs to EOF and over-counts).
 
     The auditor enumerates each handler by reading each router file. RESEARCH.md §2 supplies the per-router counts and the known offenders (admin.ts:1623, admin.ts:1653, admin.ts:1687, internal-webhooks.ts:159). For routers where reading every handler would explode this task (admin.ts has 71), the auditor MAY group routes by sub-path (e.g., `/admin/facilitators/*`) provided each handler still gets a row. **The row-count gate is ≥124 individual handler rows — not 124 sub-paths.**
 
-    **Findings table** with rows:
+    **Findings table** (under the `### Findings` heading just introduced) with rows:
     | ID | severity | title | file:line | description | status |
     | SEC-05-001 | MEDIUM | Webhook signature verification has length-mismatch leak | packages/server/src/routes/internal-webhooks.ts:106-120 | `verifyWebhookSignature` uses `crypto.timingSafeEqual` correctly but does not pre-check buffer lengths; mismatched lengths throw and the catch path returns 500, observable timing difference vs 401 for wrong-signature. | open |
     | SEC-05-002 | MEDIUM | `internal-webhooks.ts:159` reads req.body fields without zod schema | packages/server/src/routes/internal-webhooks.ts:159 | `const { event, payment, metadata } = req.body;` — fields used downstream without validation. | open |
@@ -672,7 +683,7 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
     Plan 1 enumerates; Plan 2 either fixes (express-rate-limit, signature recovery, CORS prune) or accepts.
   </action>
   <verify>
-    <automated>SEC04_ROWS=$(awk '/^## §SEC-04/,/^## §SEC-05/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| SEC-04-LOG-'); echo "SEC-04 secrets-in-logs row count: $SEC04_ROWS"; SEC05_ROWS=$(awk '/^## §SEC-05/,0' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| [a-zA-Z]'); echo "SEC-05 handler+findings row count: $SEC05_ROWS"; [ "$SEC04_ROWS" -ge 26 ] && [ "$SEC05_ROWS" -ge 124 ] && grep -q "facilitator.ts:27-28" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "express-rate-limit" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "dependabot.yml" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "public.ts:744" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md</automated>
+    <automated>SEC04_ROWS=$(awk '/^## §SEC-04/,/^## §SEC-05/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| SEC-04-LOG-'); echo "SEC-04 secrets-in-logs row count: $SEC04_ROWS"; SEC05_ROWS=$(awk '/^## §SEC-05/,/^### Findings/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| [^|]+ +\| [^|]+ +\| (GET|POST|PUT|PATCH|DELETE) +\|'); echo "SEC-05 handler enumeration row count: $SEC05_ROWS"; [ "$SEC04_ROWS" -ge 26 ] && [ "$SEC05_ROWS" -ge 124 ] && grep -q "facilitator.ts:27-28" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "express-rate-limit" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "dependabot.yml" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md && grep -q "public.ts:744" .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md</automated>
   </verify>
   <done>
     §SEC-04 has ≥26 secrets-in-logs rows + ACCESS_TOKEN_SECRET fallback finding + Dependabot finding + encryption-at-rest positive note. §SEC-05 has ≥124 handler enumeration rows + ≥6 finding rows including rate-limit absence and the four known specific gaps.
@@ -692,7 +703,18 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
   <action>
     Populate the `## CONCERNS.md Re-validation (per D-02)` block near the top of the audit doc with **exactly 11 rows** (one per CONCERNS.md item).
 
-    Columns: `| # | CONCERNS item | Still applies? | Evidence (file:line at HEAD) | Initial severity per D-10 | Cross-ref SEC-NN |`
+    Table MUST use exactly this column header so the row-count gate can match `^\| [0-9]+ \|`:
+
+    ```
+    | # | CONCERNS item | Still applies? | Evidence (file:line at HEAD) | Initial severity per D-10 | Cross-ref SEC-NN |
+    |---|---------------|-----------------|------------------------------|-----------------------------|--------------------|
+    | 1 | ... |
+    | 2 | ... |
+    ... (continuing 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    | 11 | ... |
+    ```
+
+    The first column value MUST be the literal integer `1` through `11` (one row per CONCERNS.md item, in CONCERNS.md numbering order). This is what the Task 6 verify gate counts.
 
     Copy the rows verbatim from RESEARCH.md §6, but add a "Cross-ref" column linking each row to the SEC-NN finding ID that absorbs it (e.g., item 1 → SEC-01-001/002/003; item 7 → SEC-05-004; item 8 → SEC-05-005; item 10 → SEC-04-001; item 11 → SEC-04-LOG-* rows).
 
@@ -737,10 +759,18 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
 
     No further edits — the file is committed verbatim.
 
-    If `pnpm audit --json` errors out (e.g., network failure), write a minimal placeholder JSON: `{"error": "pnpm audit failed at capture time", "captured": "2026-05-17", "command": "pnpm audit --json"}` and note in the §SEC-04 methodology that the capture step is retried as part of Plan 2 if blocked. Do NOT fail the task on `pnpm audit` non-zero exit — that is expected when advisories exist.
+    If `pnpm audit --json` errors out (e.g., network failure), write a minimal placeholder JSON that MUST include a top-level `"placeholder": true` field so the verify gate can distinguish a fallback from a real capture:
+
+    ```json
+    {"placeholder": true, "error": "pnpm audit failed at capture time", "captured": "2026-05-17", "command": "pnpm audit --json"}
+    ```
+
+    Note in the §SEC-04 methodology that the capture step is retried as part of Plan 2 if blocked. Do NOT fail the task on `pnpm audit` non-zero exit — that is expected when advisories exist.
+
+    The verify gate accepts EITHER a real capture (with `"advisories"`, `"actions"`, or `"metadata"` keys per `pnpm audit --json` schema) OR the explicit placeholder shape above.
   </action>
   <verify>
-    <automated>test -f tools/security-audit/outputs/pnpm-audit-2026-05-17.json && [ "$(wc -c < tools/security-audit/outputs/pnpm-audit-2026-05-17.json)" -gt 10 ] && head -c 1 tools/security-audit/outputs/pnpm-audit-2026-05-17.json | grep -q "{"</automated>
+    <automated>test -f tools/security-audit/outputs/pnpm-audit-2026-05-17.json && [ "$(wc -c < tools/security-audit/outputs/pnpm-audit-2026-05-17.json)" -gt 10 ] && head -c 1 tools/security-audit/outputs/pnpm-audit-2026-05-17.json | grep -q '{' && (grep -q '"advisories"\|"actions"\|"metadata"' tools/security-audit/outputs/pnpm-audit-2026-05-17.json || grep -q '"placeholder": true' tools/security-audit/outputs/pnpm-audit-2026-05-17.json)</automated>
   </verify>
   <done>
     File `tools/security-audit/outputs/pnpm-audit-2026-05-17.json` exists, is non-empty, and starts with `{` (valid JSON-ish). Content captured from `pnpm audit --json` (or placeholder if capture errored).
@@ -854,8 +884,8 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
     Do NOT push or open the PR in this task — that is for the user (per project memory rule "Always ship via PR — `gh pr create`").
 
     **Mechanical gates the executor verifies before committing:**
-    1. `[ "$(awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| (createFacilitator|getFacilitatorById|getFacilitatorBySubdomain|createTransaction|...)') ` ≥ 93
-    2. SEC-05 handler enumeration row count ≥ 124
+    1. `awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| [a-zA-Z][a-zA-Z0-9_]+ +\| [a-z0-9-]+\.ts:[0-9]+'` ≥ 93 (column-shape anchor on `Fn | File:Line`)
+    2. `awk '/^## §SEC-05/,/^### Findings/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md | grep -cE '^\| [^|]+ +\| [^|]+ +\| (GET|POST|PUT|PATCH|DELETE) +\|'` ≥ 124 (Method column anchor)
     3. SEC-04 secrets-in-logs row count ≥ 26
     4. CONCERNS re-validation row count = 11
     5. `pnpm --filter @openfacilitator/integration-tests test:security` exits 0
@@ -870,7 +900,7 @@ REQUIREMENTS.md drift exact edits (per RESEARCH.md §11):
     If ANY gate fails, do NOT commit. Surface the failure to the user.
   </action>
   <verify>
-    <automated>git status --short | grep -q "24-SECURITY-AUDIT.md\|tools/security-audit\|solana-security.test.ts\|REQUIREMENTS.md" || git log -1 --pretty=%s | grep -q "feat(24-01): audit security surface"</automated>
+    <automated>git log -1 --pretty=%s | grep -q 'feat(24-01): audit security surface' && git log -1 --name-only | grep -q '24-SECURITY-AUDIT.md' && git log -1 --name-only | grep -q 'REQUIREMENTS.md' && git log -1 --name-only | grep -q 'tools/security-audit' && git log -1 --name-only | grep -q 'solana-security.test.ts'</automated>
   </verify>
   <done>
     All twelve gates pass. One atomic commit lands containing the audit doc, tools/security-audit/ scaffold, captured pnpm audit JSON, appended Solana fuzz test, and REQUIREMENTS.md drift fix. Commit message follows the template above. No push; user opens the PR per project memory.
@@ -920,8 +950,8 @@ These are the Plan 1 row-count + fuzz-test gates the `gsd-plan-checker` will run
 
 | Gate | Target | Verification Command |
 |------|--------|----------------------|
-| SEC-02 DB-query enumeration rows | ≥ 93 | `awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md \| grep -cE '^\| (createFacilitator\|getFacilitatorById\|...)' ` ≥ 93 |
-| SEC-05 handler enumeration rows | ≥ 124 | row count in `24-SECURITY-AUDIT.md` §SEC-05 handler enumeration table |
+| SEC-02 DB-query enumeration rows | ≥ 93 | `awk '/^## §SEC-02/,/^## §SEC-03/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md \| grep -cE '^\| [a-zA-Z][a-zA-Z0-9_]+ +\| [a-z0-9-]+\.ts:[0-9]+'` ≥ 93 |
+| SEC-05 handler enumeration rows | ≥ 124 | `awk '/^## §SEC-05/,/^### Findings/' .planning/phases/24-security-audit-remediation/24-SECURITY-AUDIT.md \| grep -cE '^\| [^\|]+ +\| [^\|]+ +\| (GET\|POST\|PUT\|PATCH\|DELETE) +\|'` ≥ 124 |
 | SEC-04 secrets-in-logs grep rows | ≥ 26 | row count in `24-SECURITY-AUDIT.md` §SEC-04 secrets-in-logs table (`grep -c '^\| SEC-04-LOG-' ...` ≥ 26) |
 | CONCERNS.md re-validation rows | = 11 | row count in `24-SECURITY-AUDIT.md` CONCERNS re-validation block (`grep -c '^\| [0-9]+ \|' ...` = 11) |
 | Solana fuzz tests pass | exit 0 | `pnpm --filter @openfacilitator/integration-tests test:security` exits 0 |
