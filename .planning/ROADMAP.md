@@ -34,7 +34,7 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
 
 **Milestone Goal:** Remove unused features ($OPEN rewards program + storefronts) and run a full security audit on the slimmed surface area.
 
-- [ ] **Phase 22: Storefronts Removal** - Cut the unused storefronts surface across dashboard, server routes, and DB
+- [x] **Phase 22: Storefronts Removal** - Cut the unused storefronts surface across dashboard, server routes, and DB (completed 2026-05-17)
 - [ ] **Phase 23: Rewards Backend Removal** - Drop rewards routes, DB tables, multiplier logic, admin CRUD, and SPL transfer code
 - [ ] **Phase 24: Rewards UI & Docs Cleanup** - Remove rewards UI, retire env vars, update landing/SDK/README, rewrite Core Value
 - [ ] **Phase 25: Security Audit & Remediation** - Audit auth, multi-tenant isolation, signing, secrets, input validation; remediate HIGH/CRITICAL findings
@@ -52,7 +52,7 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
   4. Dashboard build succeeds with no missing-import errors after storefront UI and `lib/api.ts` refs are removed
   5. `db/types.ts` and `db/index.ts` no longer export storefront types or table accessors
 **Plans**: 1 plan
-  - [ ] 22-01-PLAN.md — Atomic excision of storefronts (server routes, db module + migration 004, dashboard component + api client + tab integration; grep + build verification)
+  - [x] 22-01-PLAN.md — Atomic excision of storefronts (server routes, db module + migration 004, dashboard component + api client + tab integration; grep + build verification)
 **UI hint**: yes
 
 ### Phase 23: Rewards Backend Removal
@@ -99,7 +99,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Storefronts Removal | 0/1 | Not started | - |
+| 22. Storefronts Removal | 1/1 | Complete   | 2026-05-17 |
 | 23. Rewards Backend Removal | 0/TBD | Not started | - |
 | 24. Rewards UI & Docs Cleanup | 0/TBD | Not started | - |
 | 25. Security Audit & Remediation | 0/TBD | Not started | - |
