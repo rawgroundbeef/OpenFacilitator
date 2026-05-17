@@ -51,7 +51,8 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
   3. `routes/admin.ts` and `routes/facilitator.ts` compile and serve requests with no storefront handlers
   4. Dashboard build succeeds with no missing-import errors after storefront UI and `lib/api.ts` refs are removed
   5. `db/types.ts` and `db/index.ts` no longer export storefront types or table accessors
-**Plans**: TBD
+**Plans**: 1 plan
+  - [ ] 22-01-PLAN.md — Atomic excision of storefronts (server routes, db module + migration 004, dashboard component + api client + tab integration; grep + build verification)
 **UI hint**: yes
 
 ### Phase 23: Rewards Backend Removal
@@ -98,7 +99,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Storefronts Removal | 0/TBD | Not started | - |
+| 22. Storefronts Removal | 0/1 | Not started | - |
 | 23. Rewards Backend Removal | 0/TBD | Not started | - |
 | 24. Rewards UI & Docs Cleanup | 0/TBD | Not started | - |
 | 25. Security Audit & Remediation | 0/TBD | Not started | - |
