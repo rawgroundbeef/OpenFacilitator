@@ -3,15 +3,25 @@
  * Uses initializeDatabase() to run bootstrap + migrations just like the server does.
  */
 import { initializeDatabase, closeDatabase } from '../dist/db/index.js';
-import Database from 'better-sqlite3';
 import { unlinkSync, existsSync } from 'fs';
 
 const TEST_DB = '/tmp/openfac-phase22-smoke.db';
-const TEST_DB2 = '/tmp/openfac-phase22-smoke2.db';
 
-// Clean up any previous test DBs
-if (existsSync(TEST_DB)) unlinkSync(TEST_DB);
-if (existsSync(TEST_DB2)) unlinkSync(TEST_DB2);
+/**
+ * Remove a SQLite database file along with its WAL/SHM sidecars. WAL mode
+ * is enabled unconditionally in initializeDatabase, so each run produces
+ * `${path}-wal` and `${path}-shm` next to `${path}`. Cleanup must remove
+ * all three or stale WAL state persists across runs in /tmp.
+ */
+function cleanupDb(path) {
+  for (const suffix of ['', '-wal', '-shm']) {
+    const f = path + suffix;
+    if (existsSync(f)) unlinkSync(f);
+  }
+}
+
+// Clean up any previous test DB (and its WAL/SHM sidecars).
+cleanupDb(TEST_DB);
 
 console.log('=== Run 1: Fresh DB (first time) ===');
 const db = await initializeDatabase(TEST_DB);
@@ -65,8 +75,7 @@ console.log('migrations table row for 004_drop_storefronts: ✓');
 // and releases the *-wal / *-shm sidecars.
 closeDatabase();
 
-// Cleanup
-if (existsSync(TEST_DB)) unlinkSync(TEST_DB);
-if (existsSync(TEST_DB2)) unlinkSync(TEST_DB2);
+// Cleanup (database file + WAL/SHM sidecars)
+cleanupDb(TEST_DB);
 
 console.log('\nMIGRATION SMOKE TEST PASSED ✓');
