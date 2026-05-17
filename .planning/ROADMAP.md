@@ -35,7 +35,7 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
 **Milestone Goal:** Remove unused features ($OPEN rewards program + storefronts) and run a full security audit on the slimmed surface area.
 
 - [x] **Phase 22: Storefronts Removal** - Cut the unused storefronts surface across dashboard, server routes, and DB (completed 2026-05-17)
-- [ ] **Phase 23: Rewards Removal (Backend + Frontend + Docs)** - Drop all rewards machinery — routes, DB tables, multiplier logic, admin CRUD, SPL transfer, dashboard UI, landing page, SDK docs, env vars, and PROJECT.md positioning
+- [x] **Phase 23: Rewards Removal (Backend + Frontend + Docs)** - Drop all rewards machinery — routes, DB tables, multiplier logic, admin CRUD, SPL transfer, dashboard UI, landing page, SDK docs, env vars, and PROJECT.md positioning (completed 2026-05-17)
 - [ ] **Phase 24: Security Audit & Remediation** - Audit auth, multi-tenant isolation, signing, secrets, input validation; remediate HIGH/CRITICAL findings
 
 ## Phase Details
@@ -70,7 +70,7 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
   9. `skills/openfacilitator/references/sdk-api.md` contains no rewards endpoints or examples
   10. `PROJECT.md` "Core Value" section names facilitator + subscriptions as the pitch with no rewards framing
 **Plans**: 1 plan
-  - [ ] 23-01-PLAN.md — Atomic excision of $OPEN rewards program (server routes/services/db modules + migration 005, dashboard rewards pages/components/lib-api/tab integration, navbar + auth-provider surgery, landing-page bullets, PROJECT.md Core Value rewrite per D-10, REQUIREMENTS.md REWARDS-02 fix per D-04, .env.example Rewards Program section strip, full-repo grep gate + build + migration smoke test)
+  - [x] 23-01-PLAN.md — Atomic excision of $OPEN rewards program (server routes/services/db modules + migration 005, dashboard rewards pages/components/lib-api/tab integration, navbar + auth-provider surgery, landing-page bullets, PROJECT.md Core Value rewrite per D-10, REQUIREMENTS.md REWARDS-02 fix per D-04, .env.example Rewards Program section strip, full-repo grep gate + build + migration smoke test)
 **UI hint**: yes
 
 ### Phase 24: Security Audit & Remediation
@@ -93,7 +93,7 @@ Phases execute in numeric order: 22 → 23 → 24
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 22. Storefronts Removal | 1/1 | Complete    | 2026-05-17 |
-| 23. Rewards Removal (Backend + Frontend + Docs) | 0/1 | Planned | - |
+| 23. Rewards Removal (Backend + Frontend + Docs) | 1/1 | Complete   | 2026-05-17 |
 | 24. Security Audit & Remediation | 0/TBD | Not started | - |
 
 ---
