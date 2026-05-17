@@ -20,7 +20,8 @@
     "lint": "tsc --noEmit",
     "seed": "tsx scripts/seed-transactions.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:migration": "npm run build && node scripts/smoke-test-migration.mjs"
   },
   "dependencies": {
     "@noble/curves": "^2.0.1",
