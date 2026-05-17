@@ -69,7 +69,8 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
   8. `REWARDS_WALLET_PRIVATE_KEY` and `OPEN_TOKEN_MINT` are removed from `.env.example` and README; running the server with neither var set succeeds
   9. `skills/openfacilitator/references/sdk-api.md` contains no rewards endpoints or examples
   10. `PROJECT.md` "Core Value" section names facilitator + subscriptions as the pitch with no rewards framing
-**Plans**: TBD
+**Plans**: 1 plan
+  - [ ] 23-01-PLAN.md — Atomic excision of $OPEN rewards program (server routes/services/db modules + migration 005, dashboard rewards pages/components/lib-api/tab integration, navbar + auth-provider surgery, landing-page bullets, PROJECT.md Core Value rewrite per D-10, REQUIREMENTS.md REWARDS-02 fix per D-04, .env.example Rewards Program section strip, full-repo grep gate + build + migration smoke test)
 **UI hint**: yes
 
 ### Phase 24: Security Audit & Remediation
@@ -92,10 +93,10 @@ Phases execute in numeric order: 22 → 23 → 24
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 22. Storefronts Removal | 1/1 | Complete    | 2026-05-17 |
-| 23. Rewards Removal (Backend + Frontend + Docs) | 0/TBD | Not started | - |
+| 23. Rewards Removal (Backend + Frontend + Docs) | 0/1 | Planned | - |
 | 24. Security Audit & Remediation | 0/TBD | Not started | - |
 
 ---
 
-*Next: `/gsd-discuss-phase 23`*
-*Last updated: 2026-05-17 — merged former Phase 23+24 (rewards removal) into single phase; renumbered Security Audit to Phase 24*
+*Next: `/gsd-execute-phase 23`*
+*Last updated: 2026-05-17 — Phase 23 planned: single atomic plan 23-01-PLAN.md covers all REWARDS-01..REWARDS-10 deletions*
