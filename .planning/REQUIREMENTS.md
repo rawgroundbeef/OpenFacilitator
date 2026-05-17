@@ -17,7 +17,7 @@
 
 ### Rewards Removal
 
-- [ ] **REWARDS-01**: `/rewards/*` server routes removed
+- [x] **REWARDS-01**: `/rewards/*` server routes removed
 - [ ] **REWARDS-02**: Rewards DB tables dropped via migration (`reward_addresses`, `reward_claims`, `campaigns`, `campaign_audit`, `volume_snapshots`)
 - [ ] **REWARDS-03**: Dashboard rewards UI removed (`components/rewards/*`, `facilitator-rewards-section.tsx`, `rewards-info-banner.tsx`, rewards tab)
 - [ ] **REWARDS-04**: Landing page rewards copy removed or replaced with facilitator/subscriptions messaging
@@ -26,7 +26,7 @@
 - [ ] **REWARDS-07**: SPL transfer code and reward-claim signature verification removed
 - [ ] **REWARDS-08**: Rewards env vars retired (`REWARDS_WALLET_PRIVATE_KEY`, `OPEN_TOKEN_MINT`); README and `.env.example` updated
 - [ ] **REWARDS-09**: SDK skill references to rewards (`skills/openfacilitator/references/sdk-api.md`) updated
-- [ ] **REWARDS-10**: `PROJECT.md` "Core Value" section rewritten — facilitator + subscriptions as the pitch
+- [x] **REWARDS-10**: `PROJECT.md` "Core Value" section rewritten — facilitator + subscriptions as the pitch
 
 ### Security Audit
 
