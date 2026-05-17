@@ -86,6 +86,23 @@ must_haves:
       pattern: "Phase 24"
   discipline:
     task_count_justification: "Plan 1 has 9 tasks touching 11 files. This is above the standard 2-3 task target but is required by the audit-doc-atomic-commit pattern established in Phase 22 D-05 and Phase 23 D-04: every SEC-NN section (5 sections) plus CONCERNS re-validation (1 task) plus tooling scaffold (1 task) plus pnpm audit capture (1 task) plus REQUIREMENTS.md drift fix (1 task) plus the final atomic commit gate (1 task) = 9 atomic deliverables that MUST land in one commit. Splitting would violate D-13 atomicity. Task count is justified by the intrinsic multi-deliverable structure of the audit."
+  decisions:
+    - "D-01: Audit scope is the full monorepo (packages/server, apps/dashboard, packages/core, packages/sdk, examples/). Plan 1 covers SEC-01..SEC-05 across all packages — Task 1 scaffold writes the scope literal into the audit doc (line 329)."
+    - "D-02: 11 CONCERNS.md items auto-promoted as starting findings and re-validated against HEAD — implemented in Task 6 with a mandatory 11-row table; resolved-by-removal markers populated where applicable."
+    - "D-03: Two REQUIREMENTS.md drifts fixed atomically in the same commit (SEC-05 'Hono'→'Express'; SEC-01..SEC-06 traceability 'Phase 25'→'Phase 24') — implemented in Task 8 + verified in Task 9."
+    - "D-04: Three audit tools — pnpm audit (Task 7 captures JSON output), Dependabot check (Task 5 records the missing .github/dependabot.yml as SEC-04-003), semgrep (Task 1 commits the YAML rule even if semgrep is not installed)."
+    - "D-05: Per-SEC-NN grep/semgrep patterns codified under tools/security-audit/ — Task 1 creates four executable grep scripts + the semgrep YAML; SEC-04 pattern embedded verbatim per D-05."
+    - "D-06: SEC-02 enumeration table — Task 3 enumerates every exported DB query function (≥93 rows) into a single table per the column spec; verify regex anchors on the file:line column shape."
+    - "D-07: Solana co-signing fuzz tests — Task 4 maps existing 24 tests to 5 attack classes and appends ONE new test for the truncated-data gap (`should reject token instruction with truncated data`); replay protection documented for both Solana recent-blockhash window and ERC-3009 NonceManager."
+    - "D-08: EVM signing safety — Task 4 records the SEC-03-001/002 findings citing facilitator.ts:316-369 (no signature recovery; no `to`==`payTo` check). Plan 1 documents; Plan 2 remediates."
+    - "D-09: Single findings artifact (24-SECURITY-AUDIT.md) — Task 1 scaffolds the doc with severity rubric + section anchors; Tasks 2-6 populate the SEC-NN sections plus the CONCERNS re-validation block."
+    - "D-10: Severity rubric verbatim — Task 1 writes the 4-tier rubric (CRITICAL/HIGH/MEDIUM/LOW) verbatim at the top of 24-SECURITY-AUDIT.md; verify grep enforces presence."
+    - "D-11: Acceptance log at repo root (SECURITY-DECISIONS.md) — DEFERRED TO PLAN 2 per D-13. Plan 1 does NOT create SECURITY-DECISIONS.md. Plan 2 creates it during the fix-or-accept pass."
+    - "D-12: Acceptance entry required fields (Finding ID / Severity / Title / Accepted by / Date / Rationale / Compensating control / Revisit trigger) — DEFERRED TO PLAN 2 per D-13. Plan 1 does not produce acceptance entries; the contract is referenced by Plan 1's threat_model dispositions so Plan 2 can fulfill it."
+    - "D-13: Two-plan split (24-01-AUDIT-PLAN + 24-02-REMEDIATION-PLAN) — Plan 1 ONLY in this run. 24-02 is explicitly NOT scaffolded; multiple plan locations re-affirm this (objective line 94, success criterion #5 line 987)."
+    - "D-14: Fix-or-accept threshold (CRITICAL/HIGH default fix; MEDIUM/LOW logged-only) — DEFERRED TO PLAN 2 per D-13. Plan 1 produces the finding inventory that Plan 2 acts on under this threshold."
+    - "D-15: New-code hardening in scope for Plan 2 (express-rate-limit install, debug-endpoint removal, cookie-flag tightening, secrets-in-logs scrubbing) — Plan 1 records each as a finding row (SEC-01-001/002/003, SEC-04 secrets-in-logs table, SEC-05-005 rate-limit absence) so Plan 2 has concrete remediation targets per D-15."
+    - "D-16: Wider rearchitecture (multi-tenant middleware enforcement, Postgres for distributed nonce locking) accepted with deferred-to-future-phase note — DEFERRED TO PLAN 2 per D-13. SEC-03-003 (NonceManager in-memory) is flagged in Plan 1 as a candidate D-16 acceptance."
 ---
 
 <objective>
