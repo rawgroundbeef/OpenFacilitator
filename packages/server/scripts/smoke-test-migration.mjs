@@ -2,7 +2,7 @@
  * Smoke test for migration 004_drop_storefronts
  * Uses initializeDatabase() to run bootstrap + migrations just like the server does.
  */
-import { initializeDatabase } from '../dist/db/index.js';
+import { initializeDatabase, closeDatabase } from '../dist/db/index.js';
 import Database from 'better-sqlite3';
 import { unlinkSync, existsSync } from 'fs';
 
@@ -37,6 +37,10 @@ if (storefrontTables.length > 0) {
 }
 console.log('Storefront tables: (none) ✓');
 
+// Close before re-init so the module-level singleton in initializeDatabase
+// does not leak the first handle (WAL/SHM remain open otherwise).
+closeDatabase();
+
 console.log('\n=== Run 2: Idempotency check (same DB) ===');
 // Re-initialize same DB (simulates server restart)
 const db2 = await initializeDatabase(TEST_DB);
@@ -56,6 +60,10 @@ if (!row) {
   process.exit(1);
 }
 console.log('migrations table row for 004_drop_storefronts: ✓');
+
+// Close the second handle before final cleanup so SQLite checkpoints WAL
+// and releases the *-wal / *-shm sidecars.
+closeDatabase();
 
 // Cleanup
 if (existsSync(TEST_DB)) unlinkSync(TEST_DB);
