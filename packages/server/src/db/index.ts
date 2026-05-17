@@ -115,7 +115,7 @@ export async function initializeDatabase(dbPath?: string): Promise<Database.Data
       console.log('✅ Added access_ttl column to payment_links table');
     }
 
-    // Add image_url column (for storefront display)
+    // Add image_url column for product image display
     const hasImageUrl = paymentLinksColumns.some(col => col.name === 'image_url');
     if (paymentLinksColumns.length > 0 && !hasImageUrl) {
       db.exec("ALTER TABLE payment_links ADD COLUMN image_url TEXT");
@@ -472,34 +472,6 @@ export async function initializeDatabase(dbPath?: string): Promise<Database.Data
     CREATE INDEX IF NOT EXISTS idx_product_payments_product ON product_payments(product_id);
     CREATE INDEX IF NOT EXISTS idx_product_payments_status ON product_payments(status);
 
-    -- Storefronts table (collections of products)
-    CREATE TABLE IF NOT EXISTS storefronts (
-      id TEXT PRIMARY KEY,
-      facilitator_id TEXT NOT NULL REFERENCES facilitators(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      description TEXT,
-      image_url TEXT,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(facilitator_id, slug)
-    );
-
-    -- Storefront-Products join table (many-to-many)
-    CREATE TABLE IF NOT EXISTS storefront_products (
-      storefront_id TEXT NOT NULL REFERENCES storefronts(id) ON DELETE CASCADE,
-      product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      PRIMARY KEY (storefront_id, product_id)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_storefronts_facilitator ON storefronts(facilitator_id);
-    CREATE INDEX IF NOT EXISTS idx_storefronts_slug ON storefronts(facilitator_id, slug);
-    CREATE INDEX IF NOT EXISTS idx_storefront_products_storefront ON storefront_products(storefront_id);
-    CREATE INDEX IF NOT EXISTS idx_storefront_products_product ON storefront_products(product_id);
-
     -- Webhooks table (first-class webhook entities)
     CREATE TABLE IF NOT EXISTS webhooks (
       id TEXT PRIMARY KEY,
@@ -794,7 +766,6 @@ export * from './subscriptions.js';
 export * from './products.js';
 export * from './webhooks.js';
 export * from './pending-facilitators.js';
-export * from './storefronts.js';
 // Re-export proxy-urls selectively to avoid isSlugUnique conflict with products
 export {
   createProxyUrl,
