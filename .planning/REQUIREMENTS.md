@@ -18,7 +18,7 @@
 ### Rewards Removal
 
 - [ ] **REWARDS-01**: `/rewards/*` server routes removed
-- [ ] **REWARDS-02**: Rewards DB tables dropped via migration (`reward_addresses`, `campaigns`, `claims`, `volume_snapshots`)
+- [ ] **REWARDS-02**: Rewards DB tables dropped via migration (`reward_addresses`, `reward_claims`, `campaigns`, `campaign_audit`, `volume_snapshots`)
 - [ ] **REWARDS-03**: Dashboard rewards UI removed (`components/rewards/*`, `facilitator-rewards-section.tsx`, `rewards-info-banner.tsx`, rewards tab)
 - [ ] **REWARDS-04**: Landing page rewards copy removed or replaced with facilitator/subscriptions messaging
 - [ ] **REWARDS-05**: 2x facilitator multiplier logic removed from volume calculation
