@@ -83,7 +83,9 @@ See: milestones/v1.2-ROADMAP.md for archived v1.2 phase details.
   3. Payment co-signing audit verifies Solana instruction allowlist completeness, EVM signing safety, and replay protection; findings logged
   4. Secrets/key management and input validation/API hardening audits are complete with documented findings
   5. Every HIGH/CRITICAL finding has either a merged remediation PR or an explicit entry in `SECURITY-DECISIONS.md` with rationale for acceptance
-**Plans**: TBD
+**Plans**: 2 plans (per CONTEXT.md D-13 — Plan 2 defined after Plan 1 ships)
+  - [ ] 24-01-AUDIT-PLAN.md — Run the SEC-01..SEC-05 audit and produce `24-SECURITY-AUDIT.md` with findings (≥93 DB-query rows, ≥124 handler rows, ≥26 secrets-in-logs rows, 11 CONCERNS re-validations); scaffold `tools/security-audit/` with re-runnable grep gates + semgrep rules + captured `pnpm audit` JSON; append one Solana truncated-data fuzz test (D-07 coverage gap); atomic REQUIREMENTS.md drift fix per D-03 (SEC-05 Hono→Express, SEC-01..SEC-06 traceability Phase 25→Phase 24). Plan 1 does NOT remediate findings.
+  - [ ] 24-02-REMEDIATION-PLAN.md — TBD; defined AFTER Plan 1 ships per D-13. Will close every CRITICAL/HIGH finding from Plan 1 either with a remediation commit or an entry in `SECURITY-DECISIONS.md` per D-14.
 
 ## Progress
 
@@ -94,9 +96,9 @@ Phases execute in numeric order: 22 → 23 → 24
 |-------|----------------|--------|-----------|
 | 22. Storefronts Removal | 1/1 | Complete    | 2026-05-17 |
 | 23. Rewards Removal (Backend + Frontend + Docs) | 1/1 | Complete    | 2026-05-17 |
-| 24. Security Audit & Remediation | 0/TBD | Not started | - |
+| 24. Security Audit & Remediation | 0/2 | Planning (Plan 1 only — Plan 2 deferred per D-13) | - |
 
 ---
 
-*Next: `/gsd-execute-phase 23`*
-*Last updated: 2026-05-17 — Phase 23 planned: single atomic plan 23-01-PLAN.md covers all REWARDS-01..REWARDS-10 deletions*
+*Next: `/gsd-execute-phase 24`*
+*Last updated: 2026-05-17 — Phase 24 Plan 1 planned: 24-01-AUDIT-PLAN.md covers the audit half per D-13 (remediation = Plan 2, defined after Plan 1 ships)*
