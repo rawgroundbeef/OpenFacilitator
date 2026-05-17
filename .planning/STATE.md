@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Trim & Audit
-status: verifying
-stopped_at: Phase 22 context gathered
-last_updated: "2026-05-17T13:29:39.152Z"
+status: ready_to_plan
+stopped_at: Phase 22 complete (1/1) — ready to discuss Phase 23
+last_updated: 2026-05-17T13:48:17.430Z
 last_activity: 2026-05-17
 progress:
   total_phases: 4
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-16)
 
 **Core value:** Multi-tenant crypto payment facilitator with multi-chain subscription management. (Note: rewards framing is being removed in v1.3; PROJECT.md Core Value will be rewritten in Phase 24.)
-**Current focus:** Phase 22 — storefronts-removal
+**Current focus:** Phase 23 — rewards backend removal
 
 ## Current Position
 
-Phase: 22 (storefronts-removal) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
+Phase: 23
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-05-17
 
 Progress: [██████████] 100%

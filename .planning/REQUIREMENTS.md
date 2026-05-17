@@ -9,11 +9,11 @@
 
 ### Storefronts Removal
 
-- [ ] **STORE-01**: `storefronts-section` component removed from dashboard
-- [ ] **STORE-02**: `db/storefronts` module removed; storefronts table dropped via migration
-- [ ] **STORE-03**: Storefront references removed from `routes/admin.ts` and `routes/facilitator.ts`
-- [ ] **STORE-04**: Dashboard storefront refs in `lib/api.ts` and `dashboard/[id]/page.tsx` cleaned
-- [ ] **STORE-05**: Storefront types removed from `db/types.ts` and `db/index.ts`
+- [x] **STORE-01**: `storefronts-section` component removed from dashboard
+- [x] **STORE-02**: `db/storefronts` module removed; storefronts table dropped via migration
+- [x] **STORE-03**: Storefront references removed from `routes/admin.ts` and `routes/facilitator.ts`
+- [x] **STORE-04**: Dashboard storefront refs in `lib/api.ts` and `dashboard/[id]/page.tsx` cleaned
+- [x] **STORE-05**: Storefront types removed from `db/types.ts` and `db/index.ts`
 
 ### Rewards Removal
 

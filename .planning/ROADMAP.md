@@ -99,7 +99,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 22. Storefronts Removal | 1/1 | Complete   | 2026-05-17 |
+| 22. Storefronts Removal | 1/1 | Complete    | 2026-05-17 |
 | 23. Rewards Backend Removal | 0/TBD | Not started | - |
 | 24. Rewards UI & Docs Cleanup | 0/TBD | Not started | - |
 | 25. Security Audit & Remediation | 0/TBD | Not started | - |
