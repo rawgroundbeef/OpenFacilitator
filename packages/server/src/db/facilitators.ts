@@ -1,7 +1,6 @@
 import { nanoid } from 'nanoid';
 import { getDatabase } from './index.js';
 import type { FacilitatorRecord } from './types.js';
-import { createFacilitatorMarker } from './reward-addresses.js';
 import { getActiveSubscription, createSubscription, extendSubscription } from './subscriptions.js';
 
 /**
@@ -257,81 +256,6 @@ export function isFacilitatorOwner(userId: string): boolean {
   const db = getDatabase();
   const stmt = db.prepare('SELECT 1 FROM facilitators WHERE owner_address = ? LIMIT 1');
   return stmt.get(userId.toLowerCase()) !== undefined;
-}
-
-/**
- * Ensure a facilitator owner has an enrollment marker for volume tracking
- * Creates the marker if it doesn't exist, using the earliest facilitator's created_at
- * as the enrollment date.
- *
- * @param userId - The facilitator owner's user ID
- * @returns The created marker record, or null if marker already exists or user doesn't exist
- */
-export function ensureFacilitatorMarker(userId: string): ReturnType<typeof createFacilitatorMarker> {
-  const db = getDatabase();
-  const normalizedUserId = userId.toLowerCase();
-
-  // Check if user exists in the user table (required for foreign key constraint)
-  // Use case-insensitive comparison since user IDs may have mixed case
-  const userExistsStmt = db.prepare(`
-    SELECT id FROM "user" WHERE LOWER(id) = ? LIMIT 1
-  `);
-  const userRecord = userExistsStmt.get(normalizedUserId) as { id: string } | undefined;
-  if (!userRecord) {
-    return null; // User doesn't exist in user table
-  }
-  const actualUserId = userRecord.id; // Use the actual case from DB
-
-  // Check if marker already exists (use actual user ID for FK consistency)
-  const existingStmt = db.prepare(`
-    SELECT 1 FROM reward_addresses
-    WHERE user_id = ? AND chain_type = 'facilitator'
-    LIMIT 1
-  `);
-  if (existingStmt.get(actualUserId)) {
-    return null; // Marker already exists
-  }
-
-  // Find the user's earliest facilitator by created_at
-  // Use lowercase for owner_address comparison (facilitators store lowercase)
-  const earliestStmt = db.prepare(`
-    SELECT created_at FROM facilitators
-    WHERE owner_address = ?
-    ORDER BY created_at ASC
-    LIMIT 1
-  `);
-  const earliest = earliestStmt.get(normalizedUserId) as { created_at: string } | undefined;
-
-  if (!earliest) {
-    return null; // User doesn't own any facilitators
-  }
-
-  // Create the marker with the actual user ID (for FK constraint) and earliest date
-  return createFacilitatorMarker(actualUserId, earliest.created_at);
-}
-
-/**
- * Backfill missing facilitator enrollment markers for all existing owners
- * Safe to run multiple times - ensureFacilitatorMarker is idempotent
- * @returns Number of markers created
- */
-export function backfillFacilitatorMarkers(): number {
-  const db = getDatabase();
-
-  // Find all unique facilitator owners
-  const stmt = db.prepare(`
-    SELECT DISTINCT owner_address
-    FROM facilitators
-  `);
-  const owners = stmt.all() as { owner_address: string }[];
-
-  let created = 0;
-  for (const { owner_address } of owners) {
-    const result = ensureFacilitatorMarker(owner_address);
-    if (result) created++;
-  }
-
-  return created;
 }
 
 /**

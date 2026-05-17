@@ -2,6 +2,10 @@
  * Migration: Add campaign_audit table and distributed_amount column
  *
  * Adds audit logging for campaign changes and tracks distributed amounts.
+ *
+ * Note (v1.3 Phase 23): The campaigns and campaign_audit tables are dropped in
+ * migration 005_drop_rewards. On fresh DBs where the bootstrap no longer creates
+ * these tables, this migration is a no-op (all checks gate on table existence).
  */
 import type Database from 'better-sqlite3';
 import type { Migration } from './index.js';
@@ -10,6 +14,13 @@ export const migration: Migration = {
   name: '002_campaign_audit_table',
 
   up(db: Database.Database): void {
+    // Check if campaigns table exists (not present on fresh DBs after v1.3 bootstrap cleanup)
+    const campaignsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='campaigns'").get();
+    if (!campaignsTable) {
+      // campaigns table doesn't exist — nothing to migrate (will be handled by 005_drop_rewards no-op)
+      return;
+    }
+
     // Check if campaign_audit table exists
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='campaign_audit'").get();
 

@@ -43,7 +43,6 @@ import { SettlementActivityChart } from '@/components/settlement-activity-chart'
 import { WebhooksSection } from '@/components/webhooks-section';
 import { ProductsSection } from '@/components/products-section';
 import { RefundsSection } from '@/components/refunds-section';
-import { FacilitatorRewardsSection } from '@/components/facilitator-rewards-section';
 
 function formatCurrency(value: string | number): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -55,7 +54,7 @@ function formatCurrency(value: string | number): string {
   }).format(num || 0);
 }
 
-type Tab = 'transactions' | 'products' | 'webhooks' | 'refunds' | 'rewards' | 'settings';
+type Tab = 'transactions' | 'products' | 'webhooks' | 'refunds' | 'settings';
 
 function FaviconImage({ url, favicon, size = 'md' }: { url: string; favicon?: string | null; size?: 'md' | 'lg' }) {
   const [hasError, setHasError] = useState(false);
@@ -464,17 +463,6 @@ export default function FacilitatorDetailPage() {
               Refunds
             </button>
             <button
-              onClick={() => setActiveTab('rewards')}
-              className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-                activeTab === 'rewards'
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Rewards
-            </button>
-            <button
               onClick={() => setActiveTab('settings')}
               className={cn(
                 'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
@@ -495,8 +483,6 @@ export default function FacilitatorDetailPage() {
           <WebhooksSection facilitatorId={id} facilitator={facilitator} />
         ) : activeTab === 'refunds' ? (
           <RefundsSection facilitatorId={id} facilitator={facilitator} />
-        ) : activeTab === 'rewards' ? (
-          <FacilitatorRewardsSection facilitatorId={id} />
         ) : activeTab === 'transactions' ? (
           <div className="space-y-6">
             {/* Stats Row */}

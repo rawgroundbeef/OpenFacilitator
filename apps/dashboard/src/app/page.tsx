@@ -494,12 +494,6 @@ export default function Home() {
                   <Check className="w-4 h-4 text-primary" />
                   Unlimited requests
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  <Link href="/rewards" className="hover:text-primary transition-colors">
-                    Earn $OPEN rewards
-                  </Link>
-                </li>
               </ul>
               <GetStartedButton
                 className="block w-full py-2.5 rounded-lg border border-border hover:bg-secondary text-center font-medium transition-colors text-sm"
@@ -529,12 +523,6 @@ export default function Home() {
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-primary" />
                   Manage your keys
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-primary" />
-                  <Link href="/rewards" className="hover:text-primary transition-colors">
-                    Earn $OPEN rewards (2x bonus)
-                  </Link>
                 </li>
               </ul>
               <GetStartedButton
