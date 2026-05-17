@@ -63,29 +63,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STORE-01 | TBD | Planning |
-| STORE-02 | TBD | Planning |
-| STORE-03 | TBD | Planning |
-| STORE-04 | TBD | Planning |
-| STORE-05 | TBD | Planning |
-| REWARDS-01 | TBD | Planning |
-| REWARDS-02 | TBD | Planning |
-| REWARDS-03 | TBD | Planning |
-| REWARDS-04 | TBD | Planning |
-| REWARDS-05 | TBD | Planning |
-| REWARDS-06 | TBD | Planning |
-| REWARDS-07 | TBD | Planning |
-| REWARDS-08 | TBD | Planning |
-| REWARDS-09 | TBD | Planning |
-| REWARDS-10 | TBD | Planning |
-| SEC-01 | TBD | Planning |
-| SEC-02 | TBD | Planning |
-| SEC-03 | TBD | Planning |
-| SEC-04 | TBD | Planning |
-| SEC-05 | TBD | Planning |
-| SEC-06 | TBD | Planning |
+| STORE-01 | Phase 22 | Planning |
+| STORE-02 | Phase 22 | Planning |
+| STORE-03 | Phase 22 | Planning |
+| STORE-04 | Phase 22 | Planning |
+| STORE-05 | Phase 22 | Planning |
+| REWARDS-01 | Phase 23 | Planning |
+| REWARDS-02 | Phase 23 | Planning |
+| REWARDS-03 | Phase 24 | Planning |
+| REWARDS-04 | Phase 24 | Planning |
+| REWARDS-05 | Phase 23 | Planning |
+| REWARDS-06 | Phase 23 | Planning |
+| REWARDS-07 | Phase 23 | Planning |
+| REWARDS-08 | Phase 24 | Planning |
+| REWARDS-09 | Phase 24 | Planning |
+| REWARDS-10 | Phase 24 | Planning |
+| SEC-01 | Phase 25 | Planning |
+| SEC-02 | Phase 25 | Planning |
+| SEC-03 | Phase 25 | Planning |
+| SEC-04 | Phase 25 | Planning |
+| SEC-05 | Phase 25 | Planning |
+| SEC-06 | Phase 25 | Planning |
 
-*Traceability table filled in by `gsd-roadmapper`.*
+**Coverage:** 21/21 requirements mapped to phases (100%) — no orphans, no duplicates.
 
 ---
-*Last updated: 2026-05-16 — v1.3 milestone planning*
+*Last updated: 2026-05-16 — v1.3 roadmap created, traceability filled in by gsd-roadmapper*

@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Trim & Audit
-status: planning
-last_updated: "2026-05-17T02:19:26.344Z"
-last_activity: 2026-05-17
+status: ready_to_plan
+last_updated: "2026-05-16T00:00:00.000Z"
+last_activity: 2026-05-16
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,87 +17,88 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-23)
+See: .planning/PROJECT.md (updated 2026-05-16)
 
-**Core value:** Users who process volume through OpenFacilitator get rewarded with $OPEN tokens. Facilitator owners get seamless subscription management with multi-chain support.
-**Current focus:** Between milestones — ready for v1.3 planning
+**Core value:** Multi-tenant crypto payment facilitator with multi-chain subscription management. (Note: rewards framing is being removed in v1.3; PROJECT.md Core Value will be rewritten in Phase 24.)
+**Current focus:** Phase 22 ready to plan — Storefronts Removal
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-17 — Milestone v1.3 started
+Phase: 22 of 25 (Storefronts Removal)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-05-16 — v1.3 roadmap created (4 phases, 21 requirements mapped)
 
-## Phase Summary (v1.2)
+Progress: [░░░░░░░░░░] 0%
+
+## Phase Summary (v1.3)
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 17 | UI Cleanup & Subscriptions Section | 8 | Complete ✓ |
-| 18 | Multi-Chain Wallet Infrastructure | 4 | Complete ✓ |
-| 19 | Chain Preference Logic | 3 | Complete ✓ |
-| 20 | Recurring Payment Engine | 6 | Complete ✓ |
-| 21 | Notifications & Edge Cases | 4 | Complete ✓ |
+| 22 | Storefronts Removal | 5 | Not started |
+| 23 | Rewards Backend Removal | 5 | Not started |
+| 24 | Rewards UI & Docs Cleanup | 5 | Not started |
+| 25 | Security Audit & Remediation | 6 | Not started |
 
 ## Performance Metrics
 
-**v1.0 Velocity:**
-
-- Total plans completed: 19
-- Average duration: 3m 23s
-- Total execution time: 1.07 hours
-- Phases: 11
-
-**v1.1 Velocity:**
-
-- Plans completed: 5
-- Average duration: 2m 58s
-- Total execution time: 14m 50s
-- Phases: 5 (Phases 12-16 complete)
-
-**v1.2 Velocity:**
-
-- Plans completed: 13
-- Average duration: 3m 0s
-- Total execution time: 43m 36s
-- Phases: 5 (Phases 17-21 complete)
-
-**Cumulative:**
+**Cumulative (through v1.2):**
 
 - Total plans: 37
 - Total phases: 21 (all complete)
 - Milestones shipped: 3
 
+**v1.0 Velocity:** 19 plans, avg 3m 23s, 1.07 hours total
+**v1.1 Velocity:** 5 plans, avg 2m 58s, 14m 50s total
+**v1.2 Velocity:** 13 plans, avg 3m 0s, 43m 36s total
+
 ## Accumulated Context
 
 ### Roadmap Evolution
 
-All milestones archived:
+Completed milestones archived:
 
 - v1.0 MVP: milestones/v1.0-ROADMAP.md
 - v1.1 SDK & Docs: milestones/v1.1-ROADMAP.md
 - v1.2 Subscription Wallet Overhaul: milestones/v1.2-ROADMAP.md
 
+Active milestone: v1.3 Trim & Audit (.planning/ROADMAP.md)
+
 ### Decisions
 
 See PROJECT.md Key Decisions table for full history.
-All milestone decisions archived in respective milestones/*.md files.
+
+Recent v1.3-shaping decisions:
+
+- Rewards program abandoned — neither rewards nor storefronts found product-market fit (2026-05-12)
+- Security audit runs LAST so it isn't wasted on dead code
+- Multi-chain wallet infra is KEPT (v1.2 subscriptions depend on it)
+- Core Value will be rewritten in Phase 24 — facilitator + subscriptions is the new pitch
 
 ### Pending Todos
 
-- Dashboard features spotlight (deferred to future)
-- Email notifications (deferred to future)
-- Sybil detection dashboard (deferred to future)
+- Dashboard features spotlight (deferred to v1.4)
+- Email notifications (deferred to v1.4)
+- Sybil detection dashboard (likely dropped — depended on rewards)
 - Prorated refunds (deferred to future)
 - Fund via checkout (deferred to future)
+- UI refresh and more chain support (deferred to v1.4)
 
 ### Blockers/Concerns
 
-- **Pre-Launch:** Rewards wallet must be funded before claims go live (March 2026)
-- **Pre-Launch:** CRON_SECRET env var for volume snapshot cron jobs AND subscription billing cron
+- None blocking v1.3 entry. Rewards-wallet pre-launch concerns are now obsolete (rewards being removed).
+
+## Deferred Items
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| Feature | Email notifications | Deferred to v1.4 | 2026-05-16 |
+| Feature | UI refresh | Deferred to v1.4 | 2026-05-16 |
+| Feature | More chain support | Deferred to v1.4 | 2026-05-16 |
+| Feature | Sybil detection dashboard | Likely dropped (depended on rewards) | 2026-05-16 |
 
 ## Session Continuity
 
-Last session: 2026-01-23
-Stopped at: Milestone v1.2 archived, ready for next milestone
-Resume with: `/gsd:new-milestone`
+Last session: 2026-05-16
+Stopped at: v1.3 roadmap drafted and written; ready to plan Phase 22
+Resume with: `/gsd-plan-phase 22`
