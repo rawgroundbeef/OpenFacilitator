@@ -30,12 +30,12 @@
 
 ### Security Audit
 
-- [ ] **SEC-01**: Authentication surface audited (Better Auth config, session handling, route protection, cookie flags)
-- [ ] **SEC-02**: Multi-tenant isolation audited (`facilitator_id` scoping enforced on all queries, no cross-tenant leakage)
-- [ ] **SEC-03**: Payment co-signing flow audited (Solana instruction allowlist completeness, EVM transaction signing, replay protection)
-- [ ] **SEC-04**: Secrets and key management audited (env handling, private keys never logged, no secrets in responses)
-- [ ] **SEC-05**: Input validation and API hardening audited (Express route schemas, webhook signature verification, rate limits)
-- [ ] **SEC-06**: All HIGH/CRITICAL audit findings remediated or explicitly accepted with rationale
+- [x] **SEC-01**: Authentication surface audited (Better Auth config, session handling, route protection, cookie flags)
+- [x] **SEC-02**: Multi-tenant isolation audited (`facilitator_id` scoping enforced on all queries, no cross-tenant leakage)
+- [x] **SEC-03**: Payment co-signing flow audited (Solana instruction allowlist completeness, EVM transaction signing, replay protection)
+- [x] **SEC-04**: Secrets and key management audited (env handling, private keys never logged, no secrets in responses)
+- [x] **SEC-05**: Input validation and API hardening audited (Express route schemas, webhook signature verification, rate limits)
+- [x] **SEC-06**: All HIGH/CRITICAL audit findings remediated or explicitly accepted with rationale
 
 ---
 

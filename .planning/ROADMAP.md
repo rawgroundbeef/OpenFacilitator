@@ -96,7 +96,7 @@ Phases execute in numeric order: 22 → 23 → 24
 |-------|----------------|--------|-----------|
 | 22. Storefronts Removal | 1/1 | Complete    | 2026-05-17 |
 | 23. Rewards Removal (Backend + Frontend + Docs) | 1/1 | Complete    | 2026-05-17 |
-| 24. Security Audit & Remediation | 1/1 | Complete   | 2026-05-18 |
+| 24. Security Audit & Remediation | 1/1 | Complete    | 2026-05-18 |
 
 ---
 
