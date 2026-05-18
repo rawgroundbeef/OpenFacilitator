@@ -26,6 +26,8 @@ A multi-tenant x402 payment facilitator with multi-chain subscription management
 
 **Why these removals:** Neither feature found product-market fit. Removing them shrinks the attack surface before the security audit and lets the project refocus on what's working (multi-tenant facilitator + subscriptions).
 
+**Status:** Phases 22 (storefronts removal) and 23 (rewards removal) shipped. Phase 24 audit half complete (2026-05-17) — `24-SECURITY-AUDIT.md` enumerates 1 CRITICAL, 10 HIGH, 7 MEDIUM, 15 LOW findings across SEC-01..SEC-05 plus an 11-row CONCERNS re-validation; re-runnable grep/semgrep tooling and pnpm-audit baseline committed under `tools/security-audit/`. Phase 24 remediation half (24-02) is the next planned plan and will act on the audit findings per the D-14 fix-or-accept threshold.
+
 **Constraints:**
 - Keep multi-chain wallet infra (v1.2 subscriptions depend on it)
 - `## Core Value` will be rewritten as part of this milestone — facilitator + subscriptions is the new pitch
@@ -133,4 +135,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 — Phase 23 rewards removal: Core Value rewritten, rewards entries removed from Validated / Future / Context / Constraints / Key Decisions*
+*Last updated: 2026-05-18 — Phase 24 audit half complete: security findings enumerated, audit tooling committed; Phase 24-02 remediation is next*
