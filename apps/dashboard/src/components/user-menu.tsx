@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, LogOut, LayoutDashboard, CreditCard, Trophy, ChevronDown, Sun, Moon, Monitor } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, CreditCard, ChevronDown, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -20,7 +20,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 
 export function UserMenu() {
   const pathname = usePathname();
-  const { user, signOut, hasClaimable } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const isOnDashboard = pathname === '/dashboard';
 
@@ -49,15 +49,6 @@ export function UserMenu() {
           <Link href="/subscriptions" className="flex items-center cursor-pointer">
             <CreditCard className="w-4 h-4 mr-2" />
             Subscriptions
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/rewards" className="flex items-center cursor-pointer relative">
-            <Trophy className="w-4 h-4 mr-2" />
-            Rewards
-            {hasClaimable && (
-              <span className="absolute right-2 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            )}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

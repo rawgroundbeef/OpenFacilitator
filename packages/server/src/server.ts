@@ -11,7 +11,6 @@ import { notificationsRouter } from './routes/notifications.js';
 import { statsRouter } from './routes/stats.js';
 import { discoveryRouter } from './routes/discovery.js';
 import { internalWebhooksRouter } from './routes/internal-webhooks.js';
-import { rewardsRouter } from './routes/rewards.js';
 import { resolveFacilitator } from './middleware/tenant.js';
 
 /**
@@ -78,9 +77,6 @@ export function createServer(): Express {
 
   // Admin API routes (for dashboard)
   app.use('/api/admin', adminRouter);
-
-  // Rewards API routes (for rewards program)
-  app.use('/api/rewards', rewardsRouter);
 
   // Subscription routes (for Memeputer agent integration)
   app.use('/api/subscriptions', subscriptionsRouter);

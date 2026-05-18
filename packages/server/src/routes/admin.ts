@@ -6,7 +6,6 @@ import {
   getFacilitatorsByOwner,
   updateFacilitator,
   deleteFacilitator,
-  ensureFacilitatorMarker,
 } from '../db/facilitators.js';
 import { getTransactionsByFacilitator, getTransactionStats, getDailyStats } from '../db/transactions.js';
 import {
@@ -545,9 +544,6 @@ router.post('/facilitators', requireAuth, async (req: Request, res: Response) =>
       });
       return;
     }
-
-    // Ensure facilitator owner has enrollment marker for volume tracking
-    ensureFacilitatorMarker(ownerAddress);
 
     // Register custom domain with Railway (not subdomain - we only support custom domains)
     let railwayStatus: { success: boolean; error?: string } = { success: false };

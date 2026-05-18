@@ -19,7 +19,6 @@ import { CreateFacilitatorCard } from '@/components/create-facilitator-card';
 import { CreateFacilitatorModal } from '@/components/create-facilitator-modal';
 import { BillingSection } from '@/components/billing-section';
 import { EmptyState } from '@/components/empty-state';
-import { RewardsInfoBanner } from '@/components/rewards-info-banner';
 import { FeaturesSpotlight } from '@/components/dashboard/FeaturesSpotlight';
 
 const FREE_ENDPOINT = 'https://pay.openfacilitator.io';
@@ -67,7 +66,7 @@ function FreeEndpointSection() {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated, isEnrolled } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -145,9 +144,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Rewards Info Banner */}
-        <RewardsInfoBanner />
-
         {/* Loading State */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -182,7 +178,6 @@ export default function DashboardPage() {
         {/* Features Spotlight */}
         <FeaturesSpotlight
           hasFacilitators={!!hasFacilitators}
-          isEnrolled={isEnrolled}
           firstFacilitatorId={facilitators?.[0]?.id}
           onCreateFacilitator={() => setIsCreateOpen(true)}
         />

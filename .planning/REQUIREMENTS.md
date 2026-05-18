@@ -17,8 +17,8 @@
 
 ### Rewards Removal
 
-- [ ] **REWARDS-01**: `/rewards/*` server routes removed
-- [ ] **REWARDS-02**: Rewards DB tables dropped via migration (`reward_addresses`, `campaigns`, `claims`, `volume_snapshots`)
+- [x] **REWARDS-01**: `/rewards/*` server routes removed
+- [ ] **REWARDS-02**: Rewards DB tables dropped via migration (`reward_addresses`, `reward_claims`, `campaigns`, `campaign_audit`, `volume_snapshots`)
 - [ ] **REWARDS-03**: Dashboard rewards UI removed (`components/rewards/*`, `facilitator-rewards-section.tsx`, `rewards-info-banner.tsx`, rewards tab)
 - [ ] **REWARDS-04**: Landing page rewards copy removed or replaced with facilitator/subscriptions messaging
 - [ ] **REWARDS-05**: 2x facilitator multiplier logic removed from volume calculation
@@ -26,16 +26,16 @@
 - [ ] **REWARDS-07**: SPL transfer code and reward-claim signature verification removed
 - [ ] **REWARDS-08**: Rewards env vars retired (`REWARDS_WALLET_PRIVATE_KEY`, `OPEN_TOKEN_MINT`); README and `.env.example` updated
 - [ ] **REWARDS-09**: SDK skill references to rewards (`skills/openfacilitator/references/sdk-api.md`) updated
-- [ ] **REWARDS-10**: `PROJECT.md` "Core Value" section rewritten — facilitator + subscriptions as the pitch
+- [x] **REWARDS-10**: `PROJECT.md` "Core Value" section rewritten — facilitator + subscriptions as the pitch
 
 ### Security Audit
 
-- [ ] **SEC-01**: Authentication surface audited (Better Auth config, session handling, route protection, cookie flags)
-- [ ] **SEC-02**: Multi-tenant isolation audited (`facilitator_id` scoping enforced on all queries, no cross-tenant leakage)
-- [ ] **SEC-03**: Payment co-signing flow audited (Solana instruction allowlist completeness, EVM transaction signing, replay protection)
-- [ ] **SEC-04**: Secrets and key management audited (env handling, private keys never logged, no secrets in responses)
-- [ ] **SEC-05**: Input validation and API hardening audited (Hono route schemas, webhook signature verification, rate limits)
-- [ ] **SEC-06**: All HIGH/CRITICAL audit findings remediated or explicitly accepted with rationale
+- [x] **SEC-01**: Authentication surface audited (Better Auth config, session handling, route protection, cookie flags)
+- [x] **SEC-02**: Multi-tenant isolation audited (`facilitator_id` scoping enforced on all queries, no cross-tenant leakage)
+- [x] **SEC-03**: Payment co-signing flow audited (Solana instruction allowlist completeness, EVM transaction signing, replay protection)
+- [x] **SEC-04**: Secrets and key management audited (env handling, private keys never logged, no secrets in responses)
+- [x] **SEC-05**: Input validation and API hardening audited (Express route schemas, webhook signature verification, rate limits)
+- [x] **SEC-06**: All HIGH/CRITICAL audit findings remediated or explicitly accepted with rationale
 
 ---
 
@@ -78,14 +78,15 @@
 | REWARDS-08 | Phase 24 | Planning |
 | REWARDS-09 | Phase 24 | Planning |
 | REWARDS-10 | Phase 24 | Planning |
-| SEC-01 | Phase 25 | Planning |
-| SEC-02 | Phase 25 | Planning |
-| SEC-03 | Phase 25 | Planning |
-| SEC-04 | Phase 25 | Planning |
-| SEC-05 | Phase 25 | Planning |
-| SEC-06 | Phase 25 | Planning |
+| SEC-01 | Phase 24 | Planning |
+| SEC-02 | Phase 24 | Planning |
+| SEC-03 | Phase 24 | Planning |
+| SEC-04 | Phase 24 | Planning |
+| SEC-05 | Phase 24 | Planning |
+| SEC-06 | Phase 24 | Planning |
 
 **Coverage:** 21/21 requirements mapped to phases (100%) — no orphans, no duplicates.
 
 ---
 *Last updated: 2026-05-16 — v1.3 roadmap created, traceability filled in by gsd-roadmapper*
+*2026-05-17 — Phase 24 D-03 drift fix: SEC-05 framework reference corrected to Express; SEC-01..SEC-06 traceability column updated to Phase 24*
