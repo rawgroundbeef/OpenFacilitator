@@ -1,0 +1,13 @@
+rules:
+  - id: of-no-console-secret
+    pattern-either:
+      - pattern: console.log(..., $X, ...)
+      - pattern: console.error(..., $X, ...)
+      - pattern: console.info(..., $X, ...)
+      - pattern: console.warn(..., $X, ...)
+    metavariable-regex:
+      metavariable: $X
+      regex: '(privateKey|secretKey|signingKey|BETTER_AUTH_SECRET|ENCRYPTION_KEY|ACCESS_TOKEN_SECRET|authorization|signature)'
+    message: "Sensitive identifier appears in console.log/error/info/warn — SEC-04"
+    severity: ERROR
+    languages: [typescript]
