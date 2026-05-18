@@ -612,6 +612,30 @@ describe('solana transaction validation - mainnet integration', () => {
       expect(result.isValid).toBe(false);
       console.log('  Attack 5d rejected:', result.invalidReason);
     });
+
+    it('should reject token instruction with truncated data', async () => {
+      // Transfer (type 3) requires 9 bytes (type + 8-byte amount). Send only the type byte.
+      const truncatedData = Buffer.from([3]);
+      const tx = buildTransaction({
+        feePayer: feePayerPubkey,
+        blockhash,
+        instructions: [
+          new TransactionInstruction({
+            programId: TOKEN_PROGRAM_ID,
+            keys: [
+              { pubkey: payerATA, isSigner: false, isWritable: true },
+              { pubkey: payToATA, isSigner: false, isWritable: true },
+              { pubkey: payerPubkey, isSigner: true, isWritable: false },
+            ],
+            data: truncatedData,
+          }),
+        ],
+        signers: [payerKeypair],
+      });
+      const result = await facilitator.verify(makePayload(tx, payerPubkey, payTo), requirements);
+      expect(result.isValid).toBe(false);
+      console.log('  Truncated-data attack rejected:', result.invalidReason);
+    });
   });
 
   // ------------------------------------------------------------------
