@@ -2,6 +2,12 @@ import { nanoid } from 'nanoid';
 import { getDatabase } from './index.js';
 import type { TransactionRecord } from './types.js';
 
+// Only EVM addresses (0x-prefixed hex) are case-insensitive. Solana base58 and
+// Stacks c32check addresses are case-sensitive and must be stored verbatim.
+function normalizeAddress(addr: string): string {
+  return addr.startsWith('0x') ? addr.toLowerCase() : addr;
+}
+
 /**
  * Create a new transaction record
  */
@@ -31,10 +37,10 @@ export function createTransaction(data: {
       data.facilitator_id,
       data.type,
       data.network,
-      data.from_address.toLowerCase(),
-      data.to_address.toLowerCase(),
+      normalizeAddress(data.from_address),
+      normalizeAddress(data.to_address),
       data.amount,
-      data.asset.toLowerCase(),
+      normalizeAddress(data.asset),
       data.transaction_hash || null,
       data.status,
       data.error_message || null
