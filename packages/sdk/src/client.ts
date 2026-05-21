@@ -13,9 +13,18 @@ import {
   SettlementError,
 } from './errors.js';
 import { buildUrl, normalizeUrl, getVersionSafe } from './utils.js';
+import { toV1NetworkId, toV2NetworkId } from './networks.js';
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_URL = 'https://pay.openfacilitator.io';
+
+function networksMatch(a: string, b: string): boolean {
+  return (
+    a === b ||
+    toV1NetworkId(a) === toV1NetworkId(b) ||
+    toV2NetworkId(a) === toV2NetworkId(b)
+  );
+}
 
 export class OpenFacilitator {
   private readonly baseUrl: string;
@@ -145,9 +154,9 @@ export class OpenFacilitator {
   async getFeePayer(network: string): Promise<string | undefined> {
     const supported = await this.getSupportedCached();
 
-    // Look for matching network in kinds (check both exact match and partial match)
+    // Look for matching network in kinds, accepting v1/v2 aliases.
     for (const kind of supported.kinds) {
-      if (kind.network === network || kind.network.includes(network) || network.includes(kind.network)) {
+      if (networksMatch(kind.network, network)) {
         if (kind.extra?.feePayer) {
           return kind.extra.feePayer;
         }

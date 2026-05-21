@@ -13,12 +13,13 @@ import {
   createProductPayment,
   updateProductPaymentStatus,
 } from '../db/products.js';
-import type { RequiredFieldDefinition } from '../db/types.js';
+import type { FacilitatorRecord, RequiredFieldDefinition } from '../db/types.js';
 import { decryptPrivateKey } from '../utils/crypto.js';
 import { sendSettlementWebhook, deliverWebhook, generateWebhookSecret, type ProductWebhookPayload } from '../services/webhook.js';
 import { executeAction, type ActionResult } from '../services/actions.js';
 import { getWebhookById } from '../db/webhooks.js';
 import { getProxyUrlBySlug } from '../db/proxy-urls.js';
+import { withPublicPaySolanaDevnetSupport } from '../services/solana-devnet-support.js';
 import type { Hex } from 'viem';
 
 const router: IRouter = Router();
@@ -204,6 +205,22 @@ function isSolanaNetwork(network: string): boolean {
          network.startsWith('solana:');
 }
 
+function buildFacilitatorConfig(record: FacilitatorRecord): FacilitatorConfig {
+  const config: FacilitatorConfig = {
+    id: record.id,
+    name: record.name,
+    subdomain: record.subdomain,
+    customDomain: record.custom_domain || undefined,
+    ownerAddress: record.owner_address as `0x${string}`,
+    supportedChains: JSON.parse(record.supported_chains),
+    supportedTokens: JSON.parse(record.supported_tokens) as TokenConfig[],
+    createdAt: new Date(record.created_at),
+    updatedAt: new Date(record.updated_at),
+  };
+
+  return withPublicPaySolanaDevnetSupport(record, config);
+}
+
 /**
  * Handle product webhook with action execution
  * Supports both first-class webhooks (by ID) and inline webhooks (legacy)
@@ -344,18 +361,7 @@ router.get('/favicon.ico', requireFacilitator, (req: Request, res: Response) => 
 router.get('/supported', requireFacilitator, (req: Request, res: Response) => {
   const record = req.facilitator!;
 
-  // Build facilitator config from database record
-  const config: FacilitatorConfig = {
-    id: record.id,
-    name: record.name,
-    subdomain: record.subdomain,
-    customDomain: record.custom_domain || undefined,
-    ownerAddress: record.owner_address as `0x${string}`,
-    supportedChains: JSON.parse(record.supported_chains),
-    supportedTokens: JSON.parse(record.supported_tokens) as TokenConfig[],
-    createdAt: new Date(record.created_at),
-    updatedAt: new Date(record.updated_at),
-  };
+  const config = buildFacilitatorConfig(record);
 
   const facilitator = createFacilitator(config);
   const supported = facilitator.getSupported();
@@ -421,18 +427,7 @@ router.post('/verify', requireFacilitator, async (req: Request, res: Response) =
     const { paymentRequirements } = parsed.data;
     const record = req.facilitator!;
 
-    // Build facilitator config
-    const config: FacilitatorConfig = {
-      id: record.id,
-      name: record.name,
-      subdomain: record.subdomain,
-      customDomain: record.custom_domain || undefined,
-      ownerAddress: record.owner_address as `0x${string}`,
-      supportedChains: JSON.parse(record.supported_chains),
-      supportedTokens: JSON.parse(record.supported_tokens) as TokenConfig[],
-      createdAt: new Date(record.created_at),
-      updatedAt: new Date(record.updated_at),
-    };
+    const config = buildFacilitatorConfig(record);
 
     const facilitator = createFacilitator(config);
     const result = await facilitator.verify(paymentPayload, paymentRequirements);
@@ -484,18 +479,7 @@ router.post('/settle', requireFacilitator, async (req: Request, res: Response) =
     networkForError = paymentRequirements.network;
     const record = req.facilitator!;
 
-    // Build facilitator config
-    const config: FacilitatorConfig = {
-      id: record.id,
-      name: record.name,
-      subdomain: record.subdomain,
-      customDomain: record.custom_domain || undefined,
-      ownerAddress: record.owner_address as `0x${string}`,
-      supportedChains: JSON.parse(record.supported_chains),
-      supportedTokens: JSON.parse(record.supported_tokens) as TokenConfig[],
-      createdAt: new Date(record.created_at),
-      updatedAt: new Date(record.updated_at),
-    };
+    const config = buildFacilitatorConfig(record);
 
     const facilitator = createFacilitator(config);
 
@@ -3027,4 +3011,3 @@ router.all('/u/:slug', async (req: Request, res: Response) => {
 });
 
 export { router as facilitatorRouter };
-

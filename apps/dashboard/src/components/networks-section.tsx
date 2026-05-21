@@ -5,6 +5,7 @@ import { Globe } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import {
   WalletTypeCard,
   SUPPORTED_NETWORKS,
@@ -21,6 +22,7 @@ interface NetworksSectionProps {
 
 export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [showTestnets, setShowTestnets] = useState(false);
 
   // EVM Wallet queries
@@ -88,6 +90,24 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
     },
   });
 
+  const airdropSolanaDevnet = useMutation({
+    mutationFn: () => api.airdropSolanaDevnet(facilitatorId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['solanaWallet', facilitatorId] });
+      toast({
+        title: 'Devnet SOL requested',
+        description: result.balance ? `New devnet balance: ${result.balance.sol} SOL` : 'Airdrop submitted.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Airdrop failed',
+        description: error instanceof Error ? error.message : 'Unable to request devnet SOL.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Stacks Wallet mutations
   const generateStacksWallet = useMutation({
     mutationFn: () => api.generateStacksWallet(facilitatorId),
@@ -127,6 +147,16 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
       address: solanaWallet.address || null,
       balance: solanaWallet.balance?.lamports,
       balanceFormatted: solanaWallet.balance?.sol,
+      clusterBalances: {
+        solana: {
+          balance: solanaWallet.balances?.solana?.lamports,
+          balanceFormatted: solanaWallet.balances?.solana?.sol,
+        },
+        'solana-devnet': {
+          balance: solanaWallet.balances?.['solana-devnet']?.lamports,
+          balanceFormatted: solanaWallet.balances?.['solana-devnet']?.sol,
+        },
+      },
     };
   };
 
@@ -195,9 +225,11 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
           isGenerating={generateSolanaWallet.isPending}
           isImporting={importSolanaWallet.isPending}
           isDeleting={deleteSolanaWallet.isPending}
+          isAirdroppingDevnet={airdropSolanaDevnet.isPending}
           onGenerate={() => generateSolanaWallet.mutate()}
           onImport={(pk) => importSolanaWallet.mutate(pk)}
           onDelete={() => deleteSolanaWallet.mutate()}
+          onAirdropDevnet={() => airdropSolanaDevnet.mutate()}
         />
 
         <WalletTypeCard

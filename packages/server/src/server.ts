@@ -13,6 +13,11 @@ import { discoveryRouter } from './routes/discovery.js';
 import { internalWebhooksRouter } from './routes/internal-webhooks.js';
 import { resolveFacilitator } from './middleware/tenant.js';
 
+const AUTH_SESSION_DATA_COOKIE_PREFIXES = [
+  'better-auth.session_data',
+  '__Secure-better-auth.session_data',
+] as const;
+
 /**
  * Get allowed CORS origins from environment or defaults
  */
@@ -43,6 +48,34 @@ function getCorsOrigins(): string[] {
   return [...defaultOrigins, ...productionOrigins];
 }
 
+function clearLegacyAuthSessionDataCookies(req: Request, res: Response, next: NextFunction): void {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) {
+    next();
+    return;
+  }
+
+  const cookieNames = new Set(
+    cookieHeader
+      .split(';')
+      .map((cookie) => cookie.trim().split('=')[0])
+      .filter(Boolean)
+  );
+
+  for (const name of cookieNames) {
+    const isSessionDataCookie = AUTH_SESSION_DATA_COOKIE_PREFIXES.some(
+      (prefix) => name === prefix || name.startsWith(`${prefix}.`)
+    );
+
+    if (isSessionDataCookie) {
+      res.clearCookie(name, { path: '/' });
+      res.clearCookie(name, { path: '/api' });
+    }
+  }
+
+  next();
+}
+
 /**
  * Create the Express server with all middleware and routes
  */
@@ -61,6 +94,7 @@ export function createServer(): Express {
       credentials: true,
     })
   );
+  app.use(clearLegacyAuthSessionDataCookies);
   app.use(express.json());
 
   // Health check
@@ -111,4 +145,3 @@ export function createServer(): Express {
 
   return app;
 }
-

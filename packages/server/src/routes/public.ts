@@ -15,6 +15,7 @@ import { createRegisteredServer, getRegisteredServersByResourceOwner, deleteRegi
 import { getOrCreateRefundConfig } from '../db/refund-configs.js';
 import { reportFailure, executeClaimPayout, approveClaim, rejectClaim } from '../services/claims.js';
 import { generateRefundWallet, getRefundWalletBalances, deleteRefundWallet, SUPPORTED_REFUND_NETWORKS } from '../services/refund-wallet.js';
+import { withSolanaDevnetSupport } from '../services/solana-devnet-support.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router: IRouter = Router();
@@ -125,7 +126,7 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
     });
   }
 
-  const config: FacilitatorConfig = {
+  let config: FacilitatorConfig = {
     id: 'free-facilitator',
     name: 'OpenFacilitator Free',
     subdomain: 'free',
@@ -135,6 +136,10 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+
+  if (solanaPrivateKey) {
+    config = withSolanaDevnetSupport(config);
+  }
 
   return { config, evmPrivateKey, solanaPrivateKey, stacksPrivateKey, evmAddress };
 }
@@ -435,6 +440,10 @@ router.get('/free/info', (_req: Request, res: Response) => {
         feePayerAddress: evmAddress,
       } : { available: false },
       solana: facilitatorData?.solanaPrivateKey ? {
+        available: true,
+        feePayerAddress: solanaAddress,
+      } : { available: false },
+      solanaDevnet: facilitatorData?.solanaPrivateKey ? {
         available: true,
         feePayerAddress: solanaAddress,
       } : { available: false },
@@ -1401,4 +1410,3 @@ router.get('/api/verify', async (req: Request, res: Response) => {
 });
 
 export { router as publicRouter };
-

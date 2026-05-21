@@ -199,9 +199,14 @@ const EXPLORER_URLS: Record<string, string> = {
   'stacks-testnet': 'https://explorer.hiro.so/?chain=testnet',
 };
 
-export function getExplorerAddressUrl(type: 'evm' | 'solana' | 'stacks', address: string): string {
+export function getExplorerAddressUrl(
+  type: 'evm' | 'solana' | 'stacks',
+  address: string,
+  network?: string
+): string {
   if (type === 'solana') {
-    return `https://solscan.io/account/${address}`;
+    const cluster = network === 'solana-devnet' ? '?cluster=devnet' : '';
+    return `https://solscan.io/account/${address}${cluster}`;
   }
   if (type === 'stacks') {
     return `https://explorer.hiro.so/address/${address}?chain=mainnet`;
@@ -236,6 +241,10 @@ export interface WalletInfo {
   address: string | null;
   balance?: string;
   balanceFormatted?: string;
+  clusterBalances?: {
+    solana?: { balance?: string; balanceFormatted?: string };
+    'solana-devnet'?: { balance?: string; balanceFormatted?: string };
+  };
 }
 
 // Network Pill Component
@@ -279,9 +288,11 @@ interface WalletTypeCardProps {
   isGenerating: boolean;
   isImporting: boolean;
   isDeleting: boolean;
+  isAirdroppingDevnet?: boolean;
   onGenerate: () => void;
   onImport: (privateKey: string) => void;
   onDelete: () => void;
+  onAirdropDevnet?: () => void;
 }
 
 export function WalletTypeCard({
@@ -294,17 +305,23 @@ export function WalletTypeCard({
   isGenerating,
   isImporting,
   isDeleting,
+  isAirdroppingDevnet = false,
   onGenerate,
   onImport,
   onDelete,
+  onAirdropDevnet,
 }: WalletTypeCardProps) {
   const [copied, setCopied] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importKey, setImportKey] = useState('');
+  const [solanaNetwork, setSolanaNetwork] = useState<'solana' | 'solana-devnet'>('solana');
 
   const hasWallet = wallet?.address != null;
   const displayNetworks = showTestnets ? networks : networks.filter(n => !n.testnet);
-  const balance = wallet?.balanceFormatted ? parseFloat(wallet.balanceFormatted) : 0;
+  const activeBalance = type === 'solana'
+    ? wallet?.clusterBalances?.[solanaNetwork]?.balanceFormatted ?? wallet?.balanceFormatted
+    : wallet?.balanceFormatted;
+  const balance = activeBalance ? parseFloat(activeBalance) : 0;
   const balanceStatus = hasWallet
     ? balance === 0 ? 'empty' : balance < LOW_BALANCE_THRESHOLDS[type] ? 'low' : 'ok'
     : null;
@@ -325,6 +342,7 @@ export function WalletTypeCard({
 
   const icon = NETWORK_ICONS[type];
   const nativeSymbol = NATIVE_SYMBOLS[type];
+  const activeNetwork = type === 'solana' ? solanaNetwork : undefined;
 
   return (
     <Card className={hasWallet && balanceStatus === 'ok' ? 'border-green-500/30' : ''}>
@@ -366,7 +384,7 @@ export function WalletTypeCard({
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               </Button>
               <a
-                href={getExplorerAddressUrl(type, wallet?.address || '')}
+                href={getExplorerAddressUrl(type, wallet?.address || '', activeNetwork)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -375,12 +393,35 @@ export function WalletTypeCard({
               </a>
             </div>
 
+            {type === 'solana' && (
+              <div className="inline-flex h-9 items-center rounded-md bg-muted p-1">
+                <Button
+                  type="button"
+                  variant={solanaNetwork === 'solana' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7"
+                  onClick={() => setSolanaNetwork('solana')}
+                >
+                  Mainnet
+                </Button>
+                <Button
+                  type="button"
+                  variant={solanaNetwork === 'solana-devnet' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7"
+                  onClick={() => setSolanaNetwork('solana-devnet')}
+                >
+                  Devnet
+                </Button>
+              </div>
+            )}
+
             {/* Balance */}
-            {wallet?.balanceFormatted && (
+            {activeBalance && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Balance</span>
                 <span className="font-mono">
-                  {wallet.balanceFormatted} {nativeSymbol}
+                  {activeBalance} {nativeSymbol}
                 </span>
               </div>
             )}
@@ -390,6 +431,34 @@ export function WalletTypeCard({
                 <AlertTriangle className="w-3 h-3" />
                 Low balance - fund wallet to process payments
               </p>
+            )}
+
+            {type === 'solana' && solanaNetwork === 'solana-devnet' && (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onAirdropDevnet}
+                  disabled={isAirdroppingDevnet || !onAirdropDevnet}
+                >
+                  {isAirdroppingDevnet ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  Airdrop 1 SOL
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <a
+                    href={`https://faucet.solana.com/?address=${wallet?.address || ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Faucet
+                  </a>
+                </Button>
+              </div>
             )}
 
             {/* Change Wallet */}
