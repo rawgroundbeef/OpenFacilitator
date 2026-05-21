@@ -19,7 +19,7 @@ import { sendSettlementWebhook, deliverWebhook, generateWebhookSecret, type Prod
 import { executeAction, type ActionResult } from '../services/actions.js';
 import { getWebhookById } from '../db/webhooks.js';
 import { getProxyUrlBySlug } from '../db/proxy-urls.js';
-import { withPublicPaySolanaDevnetSupport } from '../services/solana-devnet-support.js';
+import { withPublicPayTestnetSupport } from '../services/public-testnet-support.js';
 import type { Hex } from 'viem';
 
 const router: IRouter = Router();
@@ -218,7 +218,7 @@ function buildFacilitatorConfig(record: FacilitatorRecord): FacilitatorConfig {
     updatedAt: new Date(record.updated_at),
   };
 
-  return withPublicPaySolanaDevnetSupport(record, config);
+  return withPublicPayTestnetSupport(record, config);
 }
 
 /**

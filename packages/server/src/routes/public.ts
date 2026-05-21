@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type IRouter } from 'express';
 import { createFacilitator, type FacilitatorConfig, type TokenConfig, getSolanaPublicKey, networkToCaip2, isStacksNetwork } from '@openfacilitator/core';
 import { OpenFacilitator, createPaymentMiddleware, type PaymentPayload, type PaymentRequirements } from '@openfacilitator/sdk';
 import { privateKeyToAccount } from 'viem/accounts';
+import { getAddressFromPrivateKey } from '@stacks/transactions';
 
 // SDK client for demo endpoint (uses default facilitator)
 const demoFacilitator = new OpenFacilitator();
@@ -15,7 +16,7 @@ import { createRegisteredServer, getRegisteredServersByResourceOwner, deleteRegi
 import { getOrCreateRefundConfig } from '../db/refund-configs.js';
 import { reportFailure, executeClaimPayout, approveClaim, rejectClaim } from '../services/claims.js';
 import { generateRefundWallet, getRefundWalletBalances, deleteRefundWallet, SUPPORTED_REFUND_NETWORKS } from '../services/refund-wallet.js';
-import { withSolanaDevnetSupport } from '../services/solana-devnet-support.js';
+import { withConfiguredTestnetSupport } from '../services/public-testnet-support.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router: IRouter = Router();
@@ -137,9 +138,11 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
     updatedAt: new Date(),
   };
 
-  if (solanaPrivateKey) {
-    config = withSolanaDevnetSupport(config);
-  }
+  config = withConfiguredTestnetSupport(config, {
+    evm: !!evmPrivateKey,
+    solana: !!solanaPrivateKey,
+    stacks: !!stacksPrivateKey,
+  });
 
   return { config, evmPrivateKey, solanaPrivateKey, stacksPrivateKey, evmAddress };
 }
@@ -175,7 +178,7 @@ router.get('/free/supported', (_req: Request, res: Response) => {
 
   // Build signers object with namespace prefixes
   const signers: Record<string, string[]> = {};
-  const evmAddress = process.env.FREE_FACILITATOR_EVM_ADDRESS;
+  const evmAddress = facilitatorData.evmAddress || process.env.FREE_FACILITATOR_EVM_ADDRESS;
 
   // Add EVM signer and feePayer if configured
   if (evmAddress) {
@@ -425,6 +428,12 @@ router.get('/free/info', (_req: Request, res: Response) => {
   const solanaAddress = facilitatorData?.solanaPrivateKey
     ? getSolanaPublicKey(facilitatorData.solanaPrivateKey)
     : process.env.FREE_FACILITATOR_SOLANA_ADDRESS;
+  const stacksMainnetAddress = facilitatorData?.stacksPrivateKey
+    ? getAddressFromPrivateKey(facilitatorData.stacksPrivateKey, 'mainnet')
+    : undefined;
+  const stacksTestnetAddress = facilitatorData?.stacksPrivateKey
+    ? getAddressFromPrivateKey(facilitatorData.stacksPrivateKey, 'testnet')
+    : undefined;
 
   res.json({
     name: 'OpenFacilitator Free',
@@ -439,6 +448,10 @@ router.get('/free/info', (_req: Request, res: Response) => {
         available: true,
         feePayerAddress: evmAddress,
       } : { available: false },
+      baseSepolia: facilitatorData?.evmPrivateKey ? {
+        available: true,
+        feePayerAddress: evmAddress,
+      } : { available: false },
       solana: facilitatorData?.solanaPrivateKey ? {
         available: true,
         feePayerAddress: solanaAddress,
@@ -446,6 +459,14 @@ router.get('/free/info', (_req: Request, res: Response) => {
       solanaDevnet: facilitatorData?.solanaPrivateKey ? {
         available: true,
         feePayerAddress: solanaAddress,
+      } : { available: false },
+      stacks: facilitatorData?.stacksPrivateKey ? {
+        available: true,
+        address: stacksMainnetAddress,
+      } : { available: false },
+      stacksTestnet: facilitatorData?.stacksPrivateKey ? {
+        available: true,
+        address: stacksTestnetAddress,
       } : { available: false },
     },
     limits: {
