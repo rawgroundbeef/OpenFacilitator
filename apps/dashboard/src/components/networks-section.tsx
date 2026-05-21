@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
   WalletTypeCard,
-  SUPPORTED_NETWORKS,
   getEvmNetworks,
   getSolanaNetworks,
   getStacksNetworks,
@@ -93,10 +92,23 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
   const getEvmWalletInfo = (): WalletInfo | null => {
     if (!evmWallet?.hasWallet) return null;
     const baseBalance = evmWallet.balances?.['8453'];
+    const baseSepoliaBalance = evmWallet.balances?.['84532'];
     return {
       address: evmWallet.address || null,
       balance: baseBalance?.balance,
       balanceFormatted: baseBalance?.formatted,
+      networkBalances: {
+        base: {
+          address: evmWallet.address || null,
+          balance: baseBalance?.balance,
+          balanceFormatted: baseBalance?.formatted,
+        },
+        'base-sepolia': {
+          address: evmWallet.address || null,
+          balance: baseSepoliaBalance?.balance,
+          balanceFormatted: baseSepoliaBalance?.formatted,
+        },
+      },
     };
   };
 
@@ -106,12 +118,14 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
       address: solanaWallet.address || null,
       balance: solanaWallet.balance?.lamports,
       balanceFormatted: solanaWallet.balance?.sol,
-      clusterBalances: {
+      networkBalances: {
         solana: {
+          address: solanaWallet.address || null,
           balance: solanaWallet.balances?.solana?.lamports,
           balanceFormatted: solanaWallet.balances?.solana?.sol,
         },
         'solana-devnet': {
+          address: solanaWallet.address || null,
           balance: solanaWallet.balances?.['solana-devnet']?.lamports,
           balanceFormatted: solanaWallet.balances?.['solana-devnet']?.sol,
         },
@@ -121,10 +135,27 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
 
   const getStacksWalletInfo = (): WalletInfo | null => {
     if (!stacksWallet?.hasWallet) return null;
+    const mainnetAddress = stacksWallet.addresses?.stacks ?? stacksWallet.address;
+    const testnetAddress = stacksWallet.addresses?.['stacks-testnet'];
+    const mainnetBalance = stacksWallet.balances?.stacks ?? stacksWallet.balance;
+    const testnetBalance = stacksWallet.balances?.['stacks-testnet'];
+
     return {
-      address: stacksWallet.address || null,
-      balance: stacksWallet.balance?.microStx,
-      balanceFormatted: stacksWallet.balance?.stx,
+      address: mainnetAddress || null,
+      balance: mainnetBalance?.microStx,
+      balanceFormatted: mainnetBalance?.stx,
+      networkBalances: {
+        stacks: {
+          address: mainnetAddress || null,
+          balance: mainnetBalance?.microStx,
+          balanceFormatted: mainnetBalance?.stx,
+        },
+        'stacks-testnet': {
+          address: testnetAddress || null,
+          balance: testnetBalance?.microStx,
+          balanceFormatted: testnetBalance?.stx,
+        },
+      },
     };
   };
 

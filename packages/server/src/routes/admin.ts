@@ -79,6 +79,7 @@ import {
   generateSolanaKeypair,
   getSolanaPublicKey,
   getSolanaBalance,
+  getStacksBalance,
   isValidSolanaPrivateKey,
   getNonceStatus,
   forceResetNonce,
@@ -113,7 +114,6 @@ import {
   getAllWalletsForUser,
   getUSDCBalance,
   getBaseUSDCBalance,
-  getStacksSTXBalance,
 } from '../services/wallet.js';
 import { generateWebhookSecret, deliverWebhook } from '../services/webhook.js';
 import type { Hex } from 'viem';
@@ -121,6 +121,7 @@ import type { Hex } from 'viem';
 const router: IRouter = Router();
 
 type SolanaWalletNetwork = 'solana' | 'solana-devnet';
+type StacksWalletNetwork = 'stacks' | 'stacks-testnet';
 
 async function getOptionalSolanaBalance(network: SolanaWalletNetwork, address: string) {
   try {
@@ -131,6 +132,32 @@ async function getOptionalSolanaBalance(network: SolanaWalletNetwork, address: s
     };
   } catch (error) {
     console.error(`Failed to get ${network} Solana balance:`, error);
+    return null;
+  }
+}
+
+async function getOptionalEvmBalance(chainId: number, address: Hex) {
+  try {
+    const result = await getWalletBalance(chainId, address);
+    return {
+      balance: result.balance.toString(),
+      formatted: result.formatted,
+    };
+  } catch (error) {
+    console.error(`Failed to get EVM balance for chain ${chainId}:`, error);
+    return null;
+  }
+}
+
+async function getOptionalStacksBalance(network: StacksWalletNetwork, address: string) {
+  try {
+    const result = await getStacksBalance(network, address);
+    return {
+      stx: result.formatted,
+      microStx: result.balance.toString(),
+    };
+  } catch (error) {
+    console.error(`Failed to get ${network} Stacks balance:`, error);
     return null;
   }
 }
@@ -978,25 +1005,19 @@ router.get('/facilitators/:id/wallet', requireAuth, async (req: Request, res: Re
     const privateKey = decryptPrivateKey(facilitator.encrypted_private_key);
     const address = getWalletAddress(privateKey as Hex);
 
-    // Get balances for supported EVM chains
-    const balances: Record<string, { balance: string; formatted: string }> = {};
+    // Get balances for the primary EVM mainnet/devnet pair plus configured EVM chains.
+    const balances: Record<string, { balance: string; formatted: string } | null> = {};
     const supportedChains = JSON.parse(facilitator.supported_chains) as (number | string)[];
-    
+    const evmChainIds = new Set([8453, 84532]);
     for (const chainId of supportedChains) {
-      // Only get balances for EVM chains (number chainIds)
-      if (typeof chainId === 'number') {
-        try {
-          const result = await getWalletBalance(chainId, address);
-          balances[String(chainId)] = {
-            balance: result.balance.toString(),
-            formatted: result.formatted,
-          };
-        } catch (e) {
-          // Skip chains that fail to fetch balance
-          console.error(`Failed to get balance for chain ${chainId}:`, e);
-        }
-      }
+      if (typeof chainId === 'number') evmChainIds.add(chainId);
     }
+
+    await Promise.all(
+      [...evmChainIds].map(async (chainId) => {
+        balances[String(chainId)] = await getOptionalEvmBalance(chainId, address);
+      })
+    );
 
     res.json({
       hasWallet: true,
@@ -1255,23 +1276,28 @@ router.get('/facilitators/:id/wallet/stacks', requireAuth, async (req: Request, 
       return;
     }
 
-    // Decrypt to get address
+    // Decrypt to get mainnet/testnet addresses. Stacks addresses are network-specific.
     const privateKey = decryptPrivateKey(facilitator.encrypted_stacks_private_key);
-    const address = getAddressFromPrivateKey(privateKey, 'mainnet');
+    const mainnetAddress = getAddressFromPrivateKey(privateKey, 'mainnet');
+    const testnetAddress = getAddressFromPrivateKey(privateKey, 'testnet');
 
-    // Get balance
-    let balance: { stx: string; microStx: string } | null = null;
-    try {
-      const balanceInfo = await getStacksSTXBalance(address);
-      balance = { stx: balanceInfo.formatted, microStx: balanceInfo.balance.toString() };
-    } catch {
-      // Balance check may fail if node is unreachable
-    }
+    const [mainnetBalance, testnetBalance] = await Promise.all([
+      getOptionalStacksBalance('stacks', mainnetAddress),
+      getOptionalStacksBalance('stacks-testnet', testnetAddress),
+    ]);
 
     res.json({
       hasWallet: true,
-      address,
-      balance,
+      address: mainnetAddress,
+      addresses: {
+        stacks: mainnetAddress,
+        'stacks-testnet': testnetAddress,
+      },
+      balance: mainnetBalance,
+      balances: {
+        stacks: mainnetBalance,
+        'stacks-testnet': testnetBalance,
+      },
     });
   } catch (error) {
     console.error('Get Stacks wallet error:', error);

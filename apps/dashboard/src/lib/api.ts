@@ -76,7 +76,7 @@ export interface User {
 export interface WalletInfo {
   hasWallet: boolean;
   address: string | null;
-  balances: Record<string, { balance: string; formatted: string }>;
+  balances: Record<string, { balance: string; formatted: string } | null>;
 }
 
 export interface SolanaWalletInfo {
@@ -93,6 +93,14 @@ export interface StacksWalletInfo {
   hasWallet: boolean;
   address: string | null;
   balance: { stx: string; microStx: string } | null;
+  addresses?: {
+    stacks: string;
+    'stacks-testnet': string;
+  };
+  balances?: {
+    stacks: { stx: string; microStx: string } | null;
+    'stacks-testnet': { stx: string; microStx: string } | null;
+  };
 }
 
 export interface WalletGenerateResponse {

@@ -204,14 +204,19 @@ export function getExplorerAddressUrl(
   address: string,
   network?: string
 ): string {
+  if (type === 'evm') {
+    const explorerUrl = (network && EXPLORER_URLS[network]) || EXPLORER_URLS.base;
+    return `${explorerUrl}/address/${address}`;
+  }
   if (type === 'solana') {
     const cluster = network === 'solana-devnet' ? '?cluster=devnet' : '';
     return `https://solscan.io/account/${address}${cluster}`;
   }
   if (type === 'stacks') {
-    return `https://explorer.hiro.so/address/${address}?chain=mainnet`;
+    const chain = network === 'stacks-testnet' ? 'testnet' : 'mainnet';
+    return `https://explorer.hiro.so/address/${address}?chain=${chain}`;
   }
-  return `https://basescan.org/address/${address}`;
+  return `${EXPLORER_URLS.base}/address/${address}`;
 }
 
 // Balance thresholds for warnings
@@ -240,9 +245,12 @@ export interface WalletInfo {
   address: string | null;
   balance?: string;
   balanceFormatted?: string;
-  clusterBalances?: {
-    solana?: { balance?: string; balanceFormatted?: string };
-    'solana-devnet'?: { balance?: string; balanceFormatted?: string };
+  networkBalances?: {
+    [network: string]: {
+      address?: string | null;
+      balance?: string;
+      balanceFormatted?: string;
+    };
   };
 }
 
@@ -305,21 +313,26 @@ export function WalletTypeCard({
   const [copied, setCopied] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importKey, setImportKey] = useState('');
-  const [solanaNetwork, setSolanaNetwork] = useState<'solana' | 'solana-devnet'>('solana');
+  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
 
   const hasWallet = wallet?.address != null;
   const displayNetworks = showTestnets ? networks : networks.filter(n => !n.testnet);
-  const activeBalance = type === 'solana'
-    ? wallet?.clusterBalances?.[solanaNetwork]?.balanceFormatted ?? wallet?.balanceFormatted
-    : wallet?.balanceFormatted;
+  const walletNetworkIds = new Set(Object.keys(wallet?.networkBalances ?? {}));
+  const hasNetworkBalanceData = walletNetworkIds.size > 0;
+  const walletNetworks = networks.filter((network) => walletNetworkIds.has(network.v1Id));
+  const defaultNetwork = walletNetworks.find((network) => !network.testnet) ?? walletNetworks[0];
+  const activeNetwork = walletNetworks.find((network) => network.v1Id === selectedNetwork) ?? defaultNetwork;
+  const activeNetworkInfo = activeNetwork ? wallet?.networkBalances?.[activeNetwork.v1Id] : undefined;
+  const activeAddress = activeNetworkInfo ? activeNetworkInfo.address ?? '' : wallet?.address ?? '';
+  const activeBalance = activeNetworkInfo ? activeNetworkInfo.balanceFormatted : wallet?.balanceFormatted;
   const balance = activeBalance ? parseFloat(activeBalance) : 0;
   const balanceStatus = hasWallet
     ? balance === 0 ? 'empty' : balance < LOW_BALANCE_THRESHOLDS[type] ? 'low' : 'ok'
     : null;
 
   const handleCopy = async () => {
-    if (wallet?.address) {
-      await navigator.clipboard.writeText(wallet.address);
+    if (activeAddress) {
+      await navigator.clipboard.writeText(activeAddress);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -333,7 +346,7 @@ export function WalletTypeCard({
 
   const icon = NETWORK_ICONS[type];
   const nativeSymbol = NATIVE_SYMBOLS[type];
-  const activeNetwork = type === 'solana' ? solanaNetwork : undefined;
+  const activeNetworkId = activeNetwork?.v1Id;
 
   return (
     <Card className={hasWallet && balanceStatus === 'ok' ? 'border-green-500/30' : ''}>
@@ -365,7 +378,7 @@ export function WalletTypeCard({
           <div className="space-y-4">
             {/* Wallet Address */}
             <div className="flex items-center gap-2 font-mono text-sm bg-muted p-2 rounded">
-              <span className="truncate flex-1">{wallet?.address}</span>
+              <span className="truncate flex-1">{activeAddress}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -375,7 +388,7 @@ export function WalletTypeCard({
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               </Button>
               <a
-                href={getExplorerAddressUrl(type, wallet?.address || '', activeNetwork)}
+                href={getExplorerAddressUrl(type, activeAddress, activeNetworkId)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground"
@@ -384,26 +397,20 @@ export function WalletTypeCard({
               </a>
             </div>
 
-            {type === 'solana' && (
+            {walletNetworks.length > 1 && (
               <div className="inline-flex h-9 items-center rounded-md bg-muted p-1">
-                <Button
-                  type="button"
-                  variant={solanaNetwork === 'solana' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="h-7"
-                  onClick={() => setSolanaNetwork('solana')}
-                >
-                  Mainnet
-                </Button>
-                <Button
-                  type="button"
-                  variant={solanaNetwork === 'solana-devnet' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="h-7"
-                  onClick={() => setSolanaNetwork('solana-devnet')}
-                >
-                  Devnet
-                </Button>
+                {walletNetworks.map((network) => (
+                  <Button
+                    key={network.v1Id}
+                    type="button"
+                    variant={activeNetwork?.v1Id === network.v1Id ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7"
+                    onClick={() => setSelectedNetwork(network.v1Id)}
+                  >
+                    {network.testnet ? 'Devnet' : 'Mainnet'}
+                  </Button>
+                ))}
               </div>
             )}
 
@@ -495,7 +502,7 @@ export function WalletTypeCard({
               <NetworkPill
                 key={network.v1Id}
                 network={network}
-                active={hasWallet}
+                active={hasWallet && (!hasNetworkBalanceData || !network.testnet || walletNetworkIds.has(network.v1Id))}
               />
             ))}
           </div>
