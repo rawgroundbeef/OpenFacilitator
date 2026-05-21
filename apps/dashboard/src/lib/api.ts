@@ -7,7 +7,7 @@ export interface Facilitator {
   customDomain?: string;
   additionalDomains?: string[];
   ownerAddress: string;
-  supportedChains: number[];
+  supportedChains: (number | string)[];
   supportedTokens: TokenConfig[];
   url: string;
   favicon?: string | null;
@@ -26,7 +26,7 @@ export interface TokenConfig {
   address: string;
   symbol: string;
   decimals: number;
-  chainId: number;
+  chainId: number | string;
 }
 
 export interface Transaction {
@@ -55,7 +55,7 @@ export interface CreateFacilitatorRequest {
   subdomain: string;
   customDomain?: string;
   ownerAddress?: string;
-  supportedChains?: number[];
+  supportedChains?: (number | string)[];
   supportedTokens?: TokenConfig[];
 }
 
@@ -82,6 +82,17 @@ export interface WalletInfo {
 export interface SolanaWalletInfo {
   hasWallet: boolean;
   address: string | null;
+  balance: { sol: string; lamports: string } | null;
+  balances?: {
+    solana: { sol: string; lamports: string } | null;
+    'solana-devnet': { sol: string; lamports: string } | null;
+  };
+}
+
+export interface SolanaDevnetAirdropResponse {
+  success: boolean;
+  address: string;
+  signature: string;
   balance: { sol: string; lamports: string } | null;
 }
 
@@ -560,7 +571,7 @@ class ApiClient {
       name: string;
       customDomain: string | null;
       additionalDomains: string[];
-      supportedChains: number[];
+      supportedChains: (number | string)[];
       supportedTokens: TokenConfig[];
     }>
   ): Promise<Facilitator> {
@@ -690,6 +701,13 @@ class ApiClient {
   async deleteSolanaWallet(facilitatorId: string): Promise<{ success: boolean; message: string }> {
     return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana`, {
       method: 'DELETE',
+    });
+  }
+
+  async airdropSolanaDevnet(facilitatorId: string, amount = 1): Promise<SolanaDevnetAirdropResponse> {
+    return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana/devnet/airdrop`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
     });
   }
 
@@ -1195,4 +1213,3 @@ class ApiClient {
 }
 
 export const api = new ApiClient(API_BASE);
-

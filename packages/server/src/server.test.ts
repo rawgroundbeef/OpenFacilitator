@@ -43,6 +43,25 @@ describe('Auth Routes', () => {
     expect(response.status).not.toBe(404);
   });
 
+  it('scopes auth cookies to API paths without session data cache cookies', async () => {
+    const response = await request(app)
+      .post('/api/auth/sign-up/email')
+      .send({
+        email: `cookie-${Date.now()}@example.com`,
+        password: 'testpassword123',
+        name: 'Cookie Test User',
+      })
+      .set('Content-Type', 'application/json');
+
+    const setCookies = response.headers['set-cookie'] ?? [];
+    const cookies = Array.isArray(setCookies) ? setCookies : [setCookies];
+    const sessionTokenCookie = cookies.find((cookie) => cookie.startsWith('better-auth.session_token='));
+
+    expect(response.status).toBeLessThan(500);
+    expect(sessionTokenCookie).toContain('Path=/api');
+    expect(cookies.some((cookie) => cookie.startsWith('better-auth.session_data='))).toBe(false);
+  });
+
   it('POST /api/auth/sign-in/email should not return 404', async () => {
     const response = await request(app)
       .post('/api/auth/sign-in/email')
@@ -81,5 +100,22 @@ describe('Health Check', () => {
     const response = await request(app).get('/health');
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('status', 'ok');
+  });
+
+  it('expires legacy Better Auth session data cookies', async () => {
+    const response = await request(app)
+      .get('/health')
+      .set('Cookie', [
+        'better-auth.session_data=abc',
+        'better-auth.session_data.0=def',
+        'better-auth.session_token=small',
+      ].join('; '));
+
+    const setCookies = response.headers['set-cookie'] ?? [];
+    const cookies = Array.isArray(setCookies) ? setCookies : [setCookies];
+
+    expect(cookies.some((cookie) => cookie.startsWith('better-auth.session_data=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('better-auth.session_data.0=;'))).toBe(true);
+    expect(cookies.some((cookie) => cookie.startsWith('better-auth.session_token=;'))).toBe(false);
   });
 });

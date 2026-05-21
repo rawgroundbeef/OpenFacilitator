@@ -14,6 +14,7 @@ if (dir !== '.') {
 
 // Create database connection (typed as any to avoid export type issues)
 const db: any = new Database(dbPath);
+const AUTH_COOKIE_PATH = '/api';
 
 // Get trusted origins from environment and defaults
 function getTrustedOrigins(): string[] {
@@ -51,7 +52,7 @@ function getTrustedOrigins(): string[] {
   return origins;
 }
 
-export const auth = betterAuth({
+const authOptions = {
   database: db,
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:5002',
@@ -63,8 +64,12 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24,
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5,
+      enabled: false,
+    },
+  },
+  advanced: {
+    defaultCookieAttributes: {
+      path: AUTH_COOKIE_PATH,
     },
   },
   trustedOrigins: getTrustedOrigins(),
@@ -85,6 +90,8 @@ export const auth = betterAuth({
       },
     },
   },
-});
+} satisfies BetterAuthOptions;
+
+export const auth = betterAuth(authOptions);
 
 export default auth;

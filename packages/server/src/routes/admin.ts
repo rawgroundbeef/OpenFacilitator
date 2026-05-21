@@ -105,6 +105,7 @@ import {
 import crypto from 'crypto';
 import { getAddressFromPrivateKey } from '@stacks/transactions';
 import { encryptPrivateKey, decryptPrivateKey, generateWallet } from '../utils/crypto.js';
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import {
   generateWalletForUser,
   generateBaseWalletForUser,
@@ -119,6 +120,21 @@ import { generateWebhookSecret, deliverWebhook } from '../services/webhook.js';
 import type { Hex } from 'viem';
 
 const router: IRouter = Router();
+
+type SolanaWalletNetwork = 'solana' | 'solana-devnet';
+
+async function getOptionalSolanaBalance(network: SolanaWalletNetwork, address: string) {
+  try {
+    const result = await getSolanaBalance(network, address);
+    return {
+      sol: result.formatted,
+      lamports: result.balance.toString(),
+    };
+  } catch (error) {
+    console.error(`Failed to get ${network} Solana balance:`, error);
+    return null;
+  }
+}
 
 // Apply optional auth to all routes first to get user context
 router.use(optionalAuth);
@@ -1132,26 +1148,76 @@ router.get('/facilitators/:id/wallet/solana', requireAuth, async (req: Request, 
     const privateKey = decryptPrivateKey(facilitator.encrypted_solana_private_key);
     const address = getSolanaPublicKey(privateKey);
 
-    // Get SOL balance
-    let balance = null;
-    try {
-      const result = await getSolanaBalance('solana', address);
-      balance = {
-        sol: result.formatted,
-        lamports: result.balance.toString(),
-      };
-    } catch (e) {
-      console.error('Failed to get Solana balance:', e);
-    }
+    const [mainnetBalance, devnetBalance] = await Promise.all([
+      getOptionalSolanaBalance('solana', address),
+      getOptionalSolanaBalance('solana-devnet', address),
+    ]);
 
     res.json({
       hasWallet: true,
       address,
-      balance,
+      balance: mainnetBalance,
+      balances: {
+        solana: mainnetBalance,
+        'solana-devnet': devnetBalance,
+      },
     });
   } catch (error) {
     console.error('Get Solana wallet error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/admin/facilitators/:id/wallet/solana/devnet/airdrop - Request devnet SOL for the Solana wallet
+ */
+router.post('/facilitators/:id/wallet/solana/devnet/airdrop', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const facilitator = getFacilitatorById(req.params.id);
+    if (!facilitator) {
+      res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (!facilitator.encrypted_solana_private_key) {
+      res.status(404).json({ error: 'No Solana wallet configured' });
+      return;
+    }
+
+    const amount = req.body?.amount === undefined ? 1 : Number(req.body.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 2) {
+      res.status(400).json({ error: 'Airdrop amount must be greater than 0 and at most 2 SOL.' });
+      return;
+    }
+
+    const privateKey = decryptPrivateKey(facilitator.encrypted_solana_private_key);
+    const address = getSolanaPublicKey(privateKey);
+    const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || 'https://api.devnet.solana.com', 'confirmed');
+    const signature = await connection.requestAirdrop(new PublicKey(address), Math.round(amount * LAMPORTS_PER_SOL));
+    const latestBlockhash = await connection.getLatestBlockhash();
+
+    await connection.confirmTransaction(
+      {
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      },
+      'confirmed'
+    );
+
+    const balance = await getOptionalSolanaBalance('solana-devnet', address);
+
+    res.json({
+      success: true,
+      address,
+      signature,
+      balance,
+    });
+  } catch (error) {
+    console.error('Solana devnet airdrop error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to request devnet SOL',
+    });
   }
 });
 
@@ -3308,4 +3374,3 @@ router.post('/facilitators/:id/reset-nonce/:chainId', requireAuth, async (req: R
 });
 
 export { router as adminRouter };
-
