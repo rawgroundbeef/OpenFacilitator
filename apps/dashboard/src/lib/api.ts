@@ -89,13 +89,6 @@ export interface SolanaWalletInfo {
   };
 }
 
-export interface SolanaDevnetAirdropResponse {
-  success: boolean;
-  address: string;
-  signature: string;
-  balance: { sol: string; lamports: string } | null;
-}
-
 export interface StacksWalletInfo {
   hasWallet: boolean;
   address: string | null;
@@ -674,12 +667,6 @@ class ApiClient {
     });
   }
 
-  async deleteWallet(facilitatorId: string): Promise<{ success: boolean; message: string }> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/wallet`, {
-      method: 'DELETE',
-    });
-  }
-
   // Solana Wallet Management
   async getSolanaWallet(facilitatorId: string): Promise<SolanaWalletInfo> {
     return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana`);
@@ -695,19 +682,6 @@ class ApiClient {
     return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana/import`, {
       method: 'POST',
       body: JSON.stringify({ privateKey }),
-    });
-  }
-
-  async deleteSolanaWallet(facilitatorId: string): Promise<{ success: boolean; message: string }> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana`, {
-      method: 'DELETE',
-    });
-  }
-
-  async airdropSolanaDevnet(facilitatorId: string, amount = 1): Promise<SolanaDevnetAirdropResponse> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/solana/devnet/airdrop`, {
-      method: 'POST',
-      body: JSON.stringify({ amount }),
     });
   }
 
@@ -730,14 +704,6 @@ class ApiClient {
     return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/stacks/import`, {
       method: 'POST',
       body: JSON.stringify({ privateKey }),
-    });
-  }
-
-  async deleteStacksWallet(
-    facilitatorId: string
-  ): Promise<{ success: boolean; message: string }> {
-    return this.request(`/api/admin/facilitators/${facilitatorId}/wallet/stacks`, {
-      method: 'DELETE',
     });
   }
 

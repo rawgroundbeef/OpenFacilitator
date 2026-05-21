@@ -224,7 +224,6 @@ const LOW_BALANCE_THRESHOLDS = {
 // Per-type display constants
 const NETWORK_ICONS = { evm: '🔷', solana: '🟣', stacks: '🟠' } as const;
 const NATIVE_SYMBOLS = { evm: 'ETH', solana: 'SOL', stacks: 'STX' } as const;
-const SETTLEMENT_LABELS = { evm: 'EVM chain', solana: 'Solana', stacks: 'Stacks' } as const;
 const IMPORT_DESCRIPTIONS = {
   evm: 'Enter your private key (0x-prefixed hex). It will be encrypted and stored securely.',
   solana: 'Enter your Solana private key (base58 encoded). It will be encrypted and stored securely.',
@@ -287,12 +286,8 @@ interface WalletTypeCardProps {
   showTestnets: boolean;
   isGenerating: boolean;
   isImporting: boolean;
-  isDeleting: boolean;
-  isAirdroppingDevnet?: boolean;
   onGenerate: () => void;
   onImport: (privateKey: string) => void;
-  onDelete: () => void;
-  onAirdropDevnet?: () => void;
 }
 
 export function WalletTypeCard({
@@ -304,12 +299,8 @@ export function WalletTypeCard({
   showTestnets,
   isGenerating,
   isImporting,
-  isDeleting,
-  isAirdroppingDevnet = false,
   onGenerate,
   onImport,
-  onDelete,
-  onAirdropDevnet,
 }: WalletTypeCardProps) {
   const [copied, setCopied] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -433,48 +424,6 @@ export function WalletTypeCard({
               </p>
             )}
 
-            {type === 'solana' && solanaNetwork === 'solana-devnet' && (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onAirdropDevnet}
-                  disabled={isAirdroppingDevnet || !onAirdropDevnet}
-                >
-                  {isAirdroppingDevnet ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
-                  Airdrop 1 SOL
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <a
-                    href={`https://faucet.solana.com/?address=${wallet?.address || ''}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Faucet
-                  </a>
-                </Button>
-              </div>
-            )}
-
-            {/* Change Wallet */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (confirm(`Remove ${title}? This will stop ${SETTLEMENT_LABELS[type]} settlements.`)) {
-                  onDelete();
-                }
-              }}
-              disabled={isDeleting}
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Change Wallet
-            </Button>
           </div>
         ) : (
           /* Not configured state */
