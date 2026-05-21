@@ -105,7 +105,6 @@ import {
 import crypto from 'crypto';
 import { getAddressFromPrivateKey } from '@stacks/transactions';
 import { encryptPrivateKey, decryptPrivateKey, generateWallet } from '../utils/crypto.js';
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import {
   generateWalletForUser,
   generateBaseWalletForUser,
@@ -874,7 +873,7 @@ router.post('/facilitators/:id/wallet', requireAuth, async (req: Request, res: R
 
     // Check if wallet already exists
     if (facilitator.encrypted_private_key) {
-      res.status(409).json({ error: 'Wallet already exists. Delete it first to generate a new one.' });
+      res.status(409).json({ error: 'Wallet already exists.' });
       return;
     }
 
@@ -912,6 +911,11 @@ router.post('/facilitators/:id/wallet/import', requireAuth, async (req: Request,
     const facilitator = getFacilitatorById(req.params.id);
     if (!facilitator) {
       res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (facilitator.encrypted_private_key) {
+      res.status(409).json({ error: 'Wallet already exists.' });
       return;
     }
 
@@ -1005,37 +1009,6 @@ router.get('/facilitators/:id/wallet', requireAuth, async (req: Request, res: Re
   }
 });
 
-/**
- * DELETE /api/admin/facilitators/:id/wallet - Remove EVM wallet
- */
-router.delete('/facilitators/:id/wallet', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const facilitator = getFacilitatorById(req.params.id);
-    if (!facilitator) {
-      res.status(404).json({ error: 'Facilitator not found' });
-      return;
-    }
-
-    if (!facilitator.encrypted_private_key) {
-      res.status(404).json({ error: 'No EVM wallet configured' });
-      return;
-    }
-
-    // Remove wallet
-    const updated = updateFacilitator(req.params.id, { encrypted_private_key: '' });
-    
-    if (!updated) {
-      res.status(500).json({ error: 'Failed to remove wallet' });
-      return;
-    }
-
-    res.json({ success: true, message: 'Wallet removed' });
-  } catch (error) {
-    console.error('Delete wallet error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // ============= SOLANA WALLET ENDPOINTS =============
 
 /**
@@ -1051,7 +1024,7 @@ router.post('/facilitators/:id/wallet/solana', requireAuth, async (req: Request,
 
     // Check if Solana wallet already exists
     if (facilitator.encrypted_solana_private_key) {
-      res.status(409).json({ error: 'Solana wallet already exists. Delete it first to generate a new one.' });
+      res.status(409).json({ error: 'Solana wallet already exists.' });
       return;
     }
 
@@ -1086,6 +1059,11 @@ router.post('/facilitators/:id/wallet/solana/import', requireAuth, async (req: R
     const facilitator = getFacilitatorById(req.params.id);
     if (!facilitator) {
       res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (facilitator.encrypted_solana_private_key) {
+      res.status(409).json({ error: 'Solana wallet already exists.' });
       return;
     }
 
@@ -1168,90 +1146,6 @@ router.get('/facilitators/:id/wallet/solana', requireAuth, async (req: Request, 
   }
 });
 
-/**
- * POST /api/admin/facilitators/:id/wallet/solana/devnet/airdrop - Request devnet SOL for the Solana wallet
- */
-router.post('/facilitators/:id/wallet/solana/devnet/airdrop', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const facilitator = getFacilitatorById(req.params.id);
-    if (!facilitator) {
-      res.status(404).json({ error: 'Facilitator not found' });
-      return;
-    }
-
-    if (!facilitator.encrypted_solana_private_key) {
-      res.status(404).json({ error: 'No Solana wallet configured' });
-      return;
-    }
-
-    const amount = req.body?.amount === undefined ? 1 : Number(req.body.amount);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 2) {
-      res.status(400).json({ error: 'Airdrop amount must be greater than 0 and at most 2 SOL.' });
-      return;
-    }
-
-    const privateKey = decryptPrivateKey(facilitator.encrypted_solana_private_key);
-    const address = getSolanaPublicKey(privateKey);
-    const connection = new Connection(process.env.SOLANA_DEVNET_RPC_URL || 'https://api.devnet.solana.com', 'confirmed');
-    const signature = await connection.requestAirdrop(new PublicKey(address), Math.round(amount * LAMPORTS_PER_SOL));
-    const latestBlockhash = await connection.getLatestBlockhash();
-
-    await connection.confirmTransaction(
-      {
-        signature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
-      'confirmed'
-    );
-
-    const balance = await getOptionalSolanaBalance('solana-devnet', address);
-
-    res.json({
-      success: true,
-      address,
-      signature,
-      balance,
-    });
-  } catch (error) {
-    console.error('Solana devnet airdrop error:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to request devnet SOL',
-    });
-  }
-});
-
-/**
- * DELETE /api/admin/facilitators/:id/wallet/solana - Remove Solana wallet
- */
-router.delete('/facilitators/:id/wallet/solana', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const facilitator = getFacilitatorById(req.params.id);
-    if (!facilitator) {
-      res.status(404).json({ error: 'Facilitator not found' });
-      return;
-    }
-
-    if (!facilitator.encrypted_solana_private_key) {
-      res.status(404).json({ error: 'No Solana wallet configured' });
-      return;
-    }
-
-    // Remove wallet
-    const updated = updateFacilitator(req.params.id, { encrypted_solana_private_key: '' });
-    
-    if (!updated) {
-      res.status(500).json({ error: 'Failed to remove Solana wallet' });
-      return;
-    }
-
-    res.json({ success: true, message: 'Solana wallet removed' });
-  } catch (error) {
-    console.error('Delete Solana wallet error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // ============= STACKS WALLET ENDPOINTS =============
 
 /**
@@ -1267,7 +1161,7 @@ router.post('/facilitators/:id/wallet/stacks', requireAuth, async (req: Request,
 
     // Check if Stacks wallet already exists
     if (facilitator.encrypted_stacks_private_key) {
-      res.status(409).json({ error: 'Stacks wallet already exists. Delete it first to generate a new one.' });
+      res.status(409).json({ error: 'Stacks wallet already exists.' });
       return;
     }
 
@@ -1302,6 +1196,11 @@ router.post('/facilitators/:id/wallet/stacks/import', requireAuth, async (req: R
     const facilitator = getFacilitatorById(req.params.id);
     if (!facilitator) {
       res.status(404).json({ error: 'Facilitator not found' });
+      return;
+    }
+
+    if (facilitator.encrypted_stacks_private_key) {
+      res.status(409).json({ error: 'Stacks wallet already exists.' });
       return;
     }
 
@@ -1376,37 +1275,6 @@ router.get('/facilitators/:id/wallet/stacks', requireAuth, async (req: Request, 
     });
   } catch (error) {
     console.error('Get Stacks wallet error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-/**
- * DELETE /api/admin/facilitators/:id/wallet/stacks - Remove Stacks wallet
- */
-router.delete('/facilitators/:id/wallet/stacks', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const facilitator = getFacilitatorById(req.params.id);
-    if (!facilitator) {
-      res.status(404).json({ error: 'Facilitator not found' });
-      return;
-    }
-
-    if (!facilitator.encrypted_stacks_private_key) {
-      res.status(404).json({ error: 'No Stacks wallet configured' });
-      return;
-    }
-
-    // Remove the Stacks wallet
-    const updated = updateFacilitator(req.params.id, { encrypted_stacks_private_key: '' });
-
-    if (!updated) {
-      res.status(500).json({ error: 'Failed to remove Stacks wallet' });
-      return;
-    }
-
-    res.json({ success: true, message: 'Stacks wallet removed' });
-  } catch (error) {
-    console.error('Delete Stacks wallet error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

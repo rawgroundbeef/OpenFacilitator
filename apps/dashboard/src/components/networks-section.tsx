@@ -5,7 +5,6 @@ import { Globe } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
 import {
   WalletTypeCard,
   SUPPORTED_NETWORKS,
@@ -22,7 +21,6 @@ interface NetworksSectionProps {
 
 export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [showTestnets, setShowTestnets] = useState(false);
 
   // EVM Wallet queries
@@ -61,13 +59,6 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
     },
   });
 
-  const deleteEvmWallet = useMutation({
-    mutationFn: () => api.deleteWallet(facilitatorId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet', facilitatorId] });
-    },
-  });
-
   // Solana Wallet mutations
   const generateSolanaWallet = useMutation({
     mutationFn: () => api.generateSolanaWallet(facilitatorId),
@@ -83,31 +74,6 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
     },
   });
 
-  const deleteSolanaWallet = useMutation({
-    mutationFn: () => api.deleteSolanaWallet(facilitatorId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['solanaWallet', facilitatorId] });
-    },
-  });
-
-  const airdropSolanaDevnet = useMutation({
-    mutationFn: () => api.airdropSolanaDevnet(facilitatorId),
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['solanaWallet', facilitatorId] });
-      toast({
-        title: 'Devnet SOL requested',
-        description: result.balance ? `New devnet balance: ${result.balance.sol} SOL` : 'Airdrop submitted.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Airdrop failed',
-        description: error instanceof Error ? error.message : 'Unable to request devnet SOL.',
-        variant: 'destructive',
-      });
-    },
-  });
-
   // Stacks Wallet mutations
   const generateStacksWallet = useMutation({
     mutationFn: () => api.generateStacksWallet(facilitatorId),
@@ -118,13 +84,6 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
 
   const importStacksWallet = useMutation({
     mutationFn: (privateKey: string) => api.importStacksWallet(facilitatorId, privateKey),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stacksWallet', facilitatorId] });
-    },
-  });
-
-  const deleteStacksWallet = useMutation({
-    mutationFn: () => api.deleteStacksWallet(facilitatorId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stacksWallet', facilitatorId] });
     },
@@ -209,10 +168,8 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
           showTestnets={showTestnets}
           isGenerating={generateEvmWallet.isPending}
           isImporting={importEvmWallet.isPending}
-          isDeleting={deleteEvmWallet.isPending}
           onGenerate={() => generateEvmWallet.mutate()}
           onImport={(pk) => importEvmWallet.mutate(pk)}
-          onDelete={() => deleteEvmWallet.mutate()}
         />
 
         <WalletTypeCard
@@ -224,12 +181,8 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
           showTestnets={showTestnets}
           isGenerating={generateSolanaWallet.isPending}
           isImporting={importSolanaWallet.isPending}
-          isDeleting={deleteSolanaWallet.isPending}
-          isAirdroppingDevnet={airdropSolanaDevnet.isPending}
           onGenerate={() => generateSolanaWallet.mutate()}
           onImport={(pk) => importSolanaWallet.mutate(pk)}
-          onDelete={() => deleteSolanaWallet.mutate()}
-          onAirdropDevnet={() => airdropSolanaDevnet.mutate()}
         />
 
         <WalletTypeCard
@@ -241,10 +194,8 @@ export function NetworksSection({ facilitatorId }: NetworksSectionProps) {
           showTestnets={showTestnets}
           isGenerating={generateStacksWallet.isPending}
           isImporting={importStacksWallet.isPending}
-          isDeleting={deleteStacksWallet.isPending}
           onGenerate={() => generateStacksWallet.mutate()}
           onImport={(pk) => importStacksWallet.mutate(pk)}
-          onDelete={() => deleteStacksWallet.mutate()}
         />
       </div>
     </div>
