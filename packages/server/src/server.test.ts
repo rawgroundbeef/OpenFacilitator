@@ -119,3 +119,49 @@ describe('Health Check', () => {
     expect(cookies.some((cookie) => cookie.startsWith('better-auth.session_token=;'))).toBe(false);
   });
 });
+
+describe('Removed refund routes', () => {
+  let app: Express;
+
+  beforeAll(() => {
+    app = createServer();
+  });
+
+  it.each([
+    ['post', '/claims/report-failure'],
+    ['get', '/api/claims?wallet=0x123'],
+    ['get', '/api/claims/history?wallet=0x123'],
+    ['post', '/api/claims/claim-id/execute'],
+    ['get', '/api/resource-owners/me'],
+    ['post', '/api/resource-owners/register'],
+    ['get', '/api/resource-owners/resource-owner-id/wallets'],
+    ['post', '/api/resource-owners/resource-owner-id/wallets'],
+    ['delete', '/api/resource-owners/resource-owner-id/wallets/base'],
+    ['get', '/api/resource-owners/resource-owner-id/servers'],
+    ['post', '/api/resource-owners/resource-owner-id/servers'],
+    ['patch', '/api/resource-owners/resource-owner-id/servers/server-id'],
+    ['delete', '/api/resource-owners/resource-owner-id/servers/server-id'],
+    ['get', '/api/resource-owners/resource-owner-id/claims'],
+    ['post', '/api/resource-owners/resource-owner-id/claims/claim-id/approve'],
+    ['post', '/api/resource-owners/resource-owner-id/claims/claim-id/reject'],
+    ['post', '/api/resource-owners/resource-owner-id/claims/claim-id/payout'],
+    ['get', '/api/admin/facilitators/facilitator-id/refunds/config'],
+    ['post', '/api/admin/facilitators/facilitator-id/refunds/config'],
+    ['get', '/api/admin/facilitators/facilitator-id/refunds/overview'],
+    ['get', '/api/admin/facilitators/facilitator-id/resource-owners'],
+    ['get', '/api/admin/facilitators/facilitator-id/resource-owners/resource-owner-id'],
+  ] as const)('%s %s returns 410', async (method, path) => {
+    const response = await request(app)[method](path);
+
+    expect(response.status).toBe(410);
+    expect(response.body.error).toBe('Refund functionality has been removed');
+  });
+
+  it('reports the public endpoint as not refund capable', async () => {
+    const response = await request(app).get('/api/verify?facilitator=pay');
+
+    expect(response.status).toBe(200);
+    expect(response.body.supportsRefunds).toBe(false);
+    expect(response.body.badgeUrl).toBeNull();
+  });
+});

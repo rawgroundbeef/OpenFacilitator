@@ -15,18 +15,7 @@ interface UserState {
 }
 
 export function getFeatureCards(userState: UserState): FeatureCardConfig[] {
-  const { hasFacilitators, firstFacilitatorId } = userState;
-
-  const refundsCard: FeatureCardConfig = {
-    id: 'refunds',
-    icon: 'shield',
-    headline: 'Refund Protection',
-    description: 'Automatically refund customers when your API fails. Build trust and reduce disputes.',
-    ctaText: hasFacilitators ? 'Configure →' : 'Get Started →',
-    ctaHref: hasFacilitators && firstFacilitatorId
-      ? `/dashboard/${firstFacilitatorId}?tab=refunds`
-      : '/refunds/setup?facilitator=pay.openfacilitator.io',
-  };
+  const { hasFacilitators } = userState;
 
   const facilitatorCard: FeatureCardConfig = {
     id: 'facilitator',
@@ -37,7 +26,5 @@ export function getFeatureCards(userState: UserState): FeatureCardConfig[] {
     onClick: 'createFacilitator',
   };
 
-  return hasFacilitators
-    ? [facilitatorCard, refundsCard]
-    : [refundsCard, facilitatorCard];
+  return [facilitatorCard];
 }
