@@ -24,10 +24,26 @@
     "@types/node": "^22.10.1",
     "husky": "^9.1.7",
     "prettier": "^3.4.2",
-    "turbo": "^2.3.3",
+    "turbo": "^2.9.15",
     "typescript": "^5.7.2"
   },
   "dependencies": {
     "remark-gfm": "^4.0.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "bn.js": "5.2.3",
+      "defu": "6.1.7",
+      "path-to-regexp": "0.1.13",
+      "picomatch@^2.3.1": "2.3.2",
+      "picomatch@^4.0.3": "4.0.4",
+      "postcss": "8.5.15",
+      "qs": "6.15.2",
+      "rollup": "4.60.4",
+      "vite": "8.0.14",
+      "@solana/rpc-subscriptions-channel-websocket>ws": "8.21.0",
+      "rpc-websockets>ws": "8.21.0",
+      "viem>ws": "8.21.0"
+    }
   }
 }

@@ -6,7 +6,7 @@ RUN corepack enable && corepack prepare pnpm@9.14.2 --activate
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/core/package.json ./packages/core/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY packages/server/package.json ./packages/server/
@@ -40,7 +40,7 @@ COPY --from=builder /app/packages/server ./packages/server
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy workspace config
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Create data directory with proper permissions
 RUN mkdir -p /data && chmod 755 /data

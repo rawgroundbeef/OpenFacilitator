@@ -4,7 +4,7 @@ import rehypePrettyCode from 'rehype-pretty-code';
 import remarkGfm from 'remark-gfm';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@openfacilitator/core'],
+  transpilePackages: ['@openfacilitator/sdk'],
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
 };
 
