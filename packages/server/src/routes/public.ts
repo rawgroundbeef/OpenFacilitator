@@ -9,9 +9,8 @@ const demoFacilitator = new OpenFacilitator();
 import { z } from 'zod';
 import { createTransaction, updateTransactionStatus } from '../db/transactions.js';
 import { getClaimableByUserWallet, getClaimsByUserWallet, getClaimById, getClaimsByResourceOwner, getClaimStats } from '../db/claims.js';
-import { getFacilitatorById, getFacilitatorByDomainOrSubdomain } from '../db/facilitators.js';
-import { getOrCreateResourceOwner, getResourceOwnerById, getResourceOwnerByUserId, getResourceOwnersByFacilitator } from '../db/resource-owners.js';
-import { getRefundWalletsByResourceOwner, getRefundWallet, hasRefundWallet } from '../db/refund-wallets.js';
+import { getFacilitatorByDomainOrSubdomain } from '../db/facilitators.js';
+import { getOrCreateResourceOwner, getResourceOwnerById, getResourceOwnerByUserId } from '../db/resource-owners.js';
 import { createRegisteredServer, getRegisteredServersByResourceOwner, deleteRegisteredServer, regenerateServerApiKey, getRegisteredServerById, updateRegisteredServer } from '../db/registered-servers.js';
 import { getOrCreateRefundConfig } from '../db/refund-configs.js';
 import { reportFailure, executeClaimPayout, approveClaim, rejectClaim } from '../services/claims.js';
@@ -68,6 +67,13 @@ function normalizePaymentPayload(payload: string | object): string {
 
 function elapsedMs(start: bigint): number {
   return Number((process.hrtime.bigint() - start) / 1_000_000n);
+}
+
+function sendRefundsGone(_req: Request, res: Response): void {
+  res.status(410).json({
+    error: 'Refund functionality has been removed',
+    message: 'OpenFacilitator no longer supports hosted refund or claim flows.',
+  });
 }
 
 /**
@@ -604,6 +610,10 @@ router.post('/demo/unreliable', demoPaymentMiddleware, async (req: Request, res:
 // ============================================
 // CLAIMS ENDPOINTS (for SDK and users)
 // ============================================
+
+router.use('/claims', sendRefundsGone);
+router.use('/api/claims', sendRefundsGone);
+router.use('/api/resource-owners', sendRefundsGone);
 
 /**
  * POST /claims/report-failure - Report a failure from a registered server
@@ -1351,14 +1361,12 @@ router.get('/api/verify', async (req: Request, res: Response) => {
 
     // Handle special case: public pay.openfacilitator.io endpoint
     if (facilitatorId === 'pay' || facilitatorId === 'pay.openfacilitator.io') {
-      // The public endpoint supports refunds if DEMO_REFUND_API_KEY is configured.
-      const supportsRefunds = !!process.env.DEMO_REFUND_API_KEY;
       res.json({
         verified: true,
-        supportsRefunds,
+        supportsRefunds: false,
         facilitator: 'pay',
         facilitatorName: 'OpenFacilitator',
-        badgeUrl: supportsRefunds ? `${baseUrl}/badges/refund-protected.svg` : null,
+        badgeUrl: null,
         verifyUrl: `${baseUrl}/verify?facilitator=pay`,
       });
       return;
@@ -1376,36 +1384,13 @@ router.get('/api/verify', async (req: Request, res: Response) => {
       return;
     }
 
-    // Check if refund protection is enabled
-    // A facilitator supports refunds if any resource owner has:
-    // 1. Refund config enabled
-    // 2. At least one refund wallet
-    // 3. At least one API key for reporting failures
-
-    const resourceOwners = getResourceOwnersByFacilitator(facilitator.id);
-    let supportsRefunds = false;
-
-    for (const resourceOwner of resourceOwners) {
-      const refundConfig = getOrCreateRefundConfig(resourceOwner.id);
-      const wallets = getRefundWalletsByResourceOwner(resourceOwner.id);
-      const servers = getRegisteredServersByResourceOwner(resourceOwner.id);
-
-      // Has refunds if: config enabled + at least one wallet + at least one API key
-      if (refundConfig.enabled === 1 && wallets.length > 0 && servers.some(s => s.active === 1)) {
-        supportsRefunds = true;
-        break;
-      }
-    }
-
     const facilitatorDomain = facilitator.custom_domain || facilitator.subdomain;
     res.json({
       verified: true,
-      supportsRefunds,
+      supportsRefunds: false,
       facilitator: facilitatorDomain,
       facilitatorName: facilitator.name,
-      badgeUrl: supportsRefunds
-        ? `${baseUrl}/badges/refund-protected.svg`
-        : null,
+      badgeUrl: null,
       verifyUrl: `${baseUrl}/verify?facilitator=${facilitatorDomain}`,
     });
   } catch (error) {

@@ -42,7 +42,6 @@ import { TransactionsTable } from '@/components/transactions-table';
 import { SettlementActivityChart } from '@/components/settlement-activity-chart';
 import { WebhooksSection } from '@/components/webhooks-section';
 import { ProductsSection } from '@/components/products-section';
-import { RefundsSection } from '@/components/refunds-section';
 
 function formatCurrency(value: string | number): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -54,7 +53,7 @@ function formatCurrency(value: string | number): string {
   }).format(num || 0);
 }
 
-type Tab = 'transactions' | 'products' | 'webhooks' | 'refunds' | 'settings';
+type Tab = 'transactions' | 'products' | 'webhooks' | 'settings';
 
 function FaviconImage({ url, favicon, size = 'md' }: { url: string; favicon?: string | null; size?: 'md' | 'lg' }) {
   const [hasError, setHasError] = useState(false);
@@ -95,7 +94,11 @@ export default function FacilitatorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = (searchParams.get('tab') as Tab) || 'transactions';
+  const tabParam = searchParams.get('tab');
+  const activeTab: Tab =
+    tabParam === 'products' || tabParam === 'webhooks' || tabParam === 'settings'
+      ? tabParam
+      : 'transactions';
 
   const setActiveTab = (tab: Tab) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -452,17 +455,6 @@ export default function FacilitatorDetailPage() {
               Webhooks
             </button>
             <button
-              onClick={() => setActiveTab('refunds')}
-              className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-                activeTab === 'refunds'
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Refunds
-            </button>
-            <button
               onClick={() => setActiveTab('settings')}
               className={cn(
                 'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
@@ -481,8 +473,6 @@ export default function FacilitatorDetailPage() {
           <ProductsSection facilitatorId={id} facilitator={facilitator} />
         ) : activeTab === 'webhooks' ? (
           <WebhooksSection facilitatorId={id} facilitator={facilitator} />
-        ) : activeTab === 'refunds' ? (
-          <RefundsSection facilitatorId={id} facilitator={facilitator} />
         ) : activeTab === 'transactions' ? (
           <div className="space-y-6">
             {/* Stats Row */}

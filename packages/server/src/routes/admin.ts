@@ -97,6 +97,13 @@ function formatSqliteDate(dateStr: string | null | undefined): string | null {
     return dateStr;
   }
 }
+
+function sendRefundsGone(_req: Request, res: Response): void {
+  res.status(410).json({
+    error: 'Refund functionality has been removed',
+    message: 'OpenFacilitator no longer supports hosted refund or claim flows.',
+  });
+}
 import { 
   addCustomDomain, 
   removeCustomDomain, 
@@ -2947,6 +2954,9 @@ router.delete('/facilitators/:id/urls/:urlId', requireAuth, async (req: Request,
 // ============================================
 // REFUND MANAGEMENT ENDPOINTS
 // ============================================
+
+router.use('/facilitators/:id/refunds', sendRefundsGone);
+router.use('/facilitators/:id/resource-owners', sendRefundsGone);
 
 /**
  * GET /api/admin/facilitators/:id/refunds/config - Get refund configuration
