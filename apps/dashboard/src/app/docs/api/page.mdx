@@ -1,6 +1,6 @@
 import { ApiEndpoint } from '@/components/docs/ApiEndpoint';
 
-<PageHeader title="HTTP API Reference" description="For direct HTTP integration without the SDK." />
+<PageHeader title="HTTP API Reference" description="Use pay.openfacilitator.io without the SDK." />
 
 ## Base URL
 
@@ -8,7 +8,7 @@ import { ApiEndpoint } from '@/components/docs/ApiEndpoint';
 https://pay.openfacilitator.io
 ```
 
-Or your self-hosted instance.
+The SDK uses this URL by default. Direct HTTP clients can call the same host.
 
 ## Endpoints
 
@@ -108,3 +108,13 @@ All endpoints return errors in this format:
 | 400 | Bad request (invalid payload) |
 | 401 | Unauthorized |
 | 500 | Internal server error |
+
+## Public Stats
+
+High-level public stats are available without payment or authentication:
+
+```bash
+curl https://api.openfacilitator.io/public/stats
+```
+
+This returns aggregate public facilitator usage, rolling response-time metrics, and Solana settlement timing. It does not expose wallet-level feeds or private customer data.

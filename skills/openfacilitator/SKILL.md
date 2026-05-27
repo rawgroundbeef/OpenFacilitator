@@ -11,7 +11,7 @@ description: >
 
 # OpenFacilitator x402 SDK
 
-Add x402 crypto payments to any TypeScript/JavaScript server. The SDK handles payment verification, on-chain settlement, and optional refund protection.
+Add x402 crypto payments to any TypeScript/JavaScript server. The SDK handles payment verification and on-chain settlement.
 
 ## Install
 
@@ -120,8 +120,7 @@ if (!settleResult.success) {
 | Simple API paywall | Middleware | `references/patterns.md` §1-2 |
 | Business logic between verify and settle | Manual verify + settle | `references/patterns.md` §3 |
 | Per-request dynamic pricing | Middleware with dynamic `getRequirements` | `references/patterns.md` §4 |
-| Refund protection | Either pattern + refund config | `references/patterns.md` §5 |
-| Accept multiple chains | Either pattern + array requirements | `references/patterns.md` §6 |
+| Accept multiple chains | Either pattern + array requirements | `references/patterns.md` §5 |
 | Build EVM payment payload (ERC-3009) | Client construction | `references/client-construction.md` §1 |
 | Build Solana payment payload | Client construction | `references/client-construction.md` §2 |
 | Server-side signing (Openfort/Privy/Turnkey) | Custodial pattern | `references/client-construction.md` §3 |
@@ -134,7 +133,6 @@ if (!settleResult.success) {
 - **`settle()` is synchronous-feeling but async** — it waits for on-chain confirmation before returning the tx hash. No webhooks needed for settlement confirmation.
 - **Payment header**: Clients send `X-PAYMENT` header containing base64-encoded JSON.
 - **Default facilitator**: `https://pay.openfacilitator.io` (free, no account needed).
-- **Refund protection** is opt-in via middleware config. Requires an API key from the dashboard.
 
 ## Common USDC Addresses
 

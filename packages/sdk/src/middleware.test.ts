@@ -234,26 +234,6 @@ describe('createPaymentMiddleware (Express)', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('adds supportsRefunds to extra when refundProtection is enabled', async () => {
-    const middleware = createPaymentMiddleware({
-      facilitator,
-      getRequirements: () => v1Requirements(),
-      refundProtection: {
-        apiKey: 'test-key',
-      },
-    });
-
-    const req = createExpressReq({});
-    const res = createExpressRes();
-    const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    const body = res._jsonFn.mock.calls[0][0];
-    expect(body.accepts[0].extra).toBeDefined();
-    expect(body.accepts[0].extra.supportsRefunds).toBe(true);
-  });
-
   it('supports multi-network accepts array', async () => {
     const middleware = createPaymentMiddleware({
       facilitator,
@@ -395,25 +375,6 @@ describe('honoPaymentMiddleware (Hono)', () => {
     expect(body.error).toBe('Payment settlement failed');
     expect(body.reason).toBe('insufficient funds');
     expect(next).not.toHaveBeenCalled();
-  });
-
-  it('adds supportsRefunds to extra when refundProtection is enabled', async () => {
-    const middleware = honoPaymentMiddleware({
-      facilitator,
-      getRequirements: () => v1Requirements(),
-      refundProtection: {
-        apiKey: 'test-key',
-      },
-    });
-
-    const c = createHonoContext(undefined);
-    const next = vi.fn().mockResolvedValue(undefined);
-
-    await middleware(c as Parameters<typeof middleware>[0], next);
-
-    const [body] = c._jsonFn.mock.calls[0];
-    expect(body.accepts[0].extra).toBeDefined();
-    expect(body.accepts[0].extra.supportsRefunds).toBe(true);
   });
 
   it('supports multi-network accepts array', async () => {

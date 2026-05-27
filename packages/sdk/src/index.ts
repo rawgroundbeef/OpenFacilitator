@@ -53,40 +53,16 @@ export {
   assertNever,
 } from './utils.js';
 
-// Claims
-export {
-  reportFailure,
-  getClaimable,
-  getClaimHistory,
-  executeClaim,
-  type ReportFailureParams,
-  type ReportFailureResponse,
-  type GetClaimableParams,
-  type ClaimableItem,
-  type GetClaimableResponse,
-  type ClaimHistoryItem,
-  type GetClaimHistoryResponse,
-  type ExecuteClaimParams,
-  type ExecuteClaimResponse,
-} from './claims.js';
-
 // Middleware
 export {
-  // Core wrapper
-  withRefundProtection,
   createPaymentContext,
   // Express middleware
   createPaymentMiddleware,
-  createRefundMiddleware,
   // Hono middleware
   honoPaymentMiddleware,
-  honoRefundMiddleware,
   // Types
-  type RefundProtectionConfig,
-  type MiddlewareRefundConfig,
   type PaymentContext,
   type PaymentRequest,
   type PaymentMiddlewareConfig,
-  type HonoRefundConfig,
   type HonoPaymentConfig,
 } from './middleware.js';

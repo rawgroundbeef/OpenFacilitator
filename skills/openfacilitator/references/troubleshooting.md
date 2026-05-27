@@ -144,7 +144,7 @@ if (!settleResult.success) {
 "Stacks wallet not configured. Please set up a Stacks wallet in the dashboard."
 ```
 
-**Fix:** Configure the appropriate wallet in the OpenFacilitator dashboard. The free facilitator at `pay.openfacilitator.io` has all wallets pre-configured.
+**Fix:** Configure the appropriate wallet in the OpenFacilitator dashboard. The public `pay.openfacilitator.io` endpoint has all wallets pre-configured.
 
 ---
 
@@ -185,41 +185,14 @@ When no payment is provided or payment is invalid, the middleware returns:
       "amount": "1000000",
       "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       "payTo": "0xRecipient",
-      "maxTimeoutSeconds": 300,
-      "extra": {
-        "supportsRefunds": true
-      }
+      "maxTimeoutSeconds": 300
     }
   ]
 }
 ```
 
-- `extra.supportsRefunds: true` is included when refund protection is enabled
-- `extra.feePayer` is included for Solana networks when fee payer is available
+- `extra.feePayer` is included on Solana entries when fee payer is available
 - Multiple entries in `accepts` when multi-network support is configured
-
----
-
-## Refund Protection Edge Cases
-
-### When does automatic refund reporting trigger?
-
-Only when the **handler throws an error** after successful settlement. The middleware catches the error, reports the failure, then re-throws.
-
-### What if reportFailure() itself fails?
-
-The `onReportError` callback is called with both the report error and the original error. The original error is still re-thrown. The user's payment is NOT automatically refunded — you'll need to handle this manually.
-
-### Claim lifecycle
-
-1. `reportFailure()` → claim created with status `pending`
-2. Resource owner approves → status `approved`
-3. `executeClaim()` → payout executed, status `paid`
-4. If not processed within 30 days → status `expired`
-
-### Can the same tx be reported twice?
-
-No. `reportFailure()` returns an error: `"Claim already exists for this transaction"`. Each transaction hash can only have one claim.
 
 ---
 

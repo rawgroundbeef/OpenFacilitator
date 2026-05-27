@@ -21,19 +21,19 @@ import { BillingSection } from '@/components/billing-section';
 import { EmptyState } from '@/components/empty-state';
 import { FeaturesSpotlight } from '@/components/dashboard/FeaturesSpotlight';
 
-const FREE_ENDPOINT = 'https://pay.openfacilitator.io';
+const PUBLIC_ENDPOINT = 'https://pay.openfacilitator.io';
 
-// Free Endpoint Section
-function FreeEndpointSection() {
+// Public Endpoint Section
+function PublicEndpointSection() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(FREE_ENDPOINT);
+    await navigator.clipboard.writeText(PUBLIC_ENDPOINT);
     setCopied(true);
     toast({
       title: 'Copied!',
-      description: 'Free endpoint URL copied to clipboard',
+      description: 'Public endpoint URL copied to clipboard',
     });
     setTimeout(() => setCopied(false), 2000);
   };
@@ -42,8 +42,8 @@ function FreeEndpointSection() {
     <div className="border-2 border-dashed border-border rounded-lg p-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-muted-foreground mb-1">Don't need your own domain?</p>
-          <p className="font-mono">{FREE_ENDPOINT}</p>
+          <p className="text-muted-foreground mb-1">Use the dogfooded OpenFacilitator endpoint</p>
+          <p className="font-mono">{PUBLIC_ENDPOINT}</p>
           <p className="text-sm text-muted-foreground">Just use ours · No setup needed</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleCopy}>
@@ -184,7 +184,7 @@ export default function DashboardPage() {
 
         {/* Shared Facilitator Option */}
         <div className="mb-12">
-          <FreeEndpointSection />
+          <PublicEndpointSection />
         </div>
 
         {/* Billing Section (only show if has facilitators) */}
