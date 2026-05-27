@@ -4,17 +4,12 @@ import path from 'path';
 import fs from 'fs';
 import { generateWalletForUser } from '../services/wallet.js';
 
-const dbPath = process.env.DATABASE_PATH || './data/openfacilitator.db';
+export const DEFAULT_AUTH_DB_PATH = './data/openfacilitator.db';
+export const AUTH_COOKIE_PATH = '/api';
 
-// Ensure directory exists
-const dir = path.dirname(dbPath);
-if (dir !== '.') {
-  fs.mkdirSync(dir, { recursive: true });
+export function resolveAuthDbPath(dbPath?: string): string {
+  return dbPath || process.env.DATABASE_PATH || DEFAULT_AUTH_DB_PATH;
 }
-
-// Create database connection (typed as any to avoid export type issues)
-const db: any = new Database(dbPath);
-const AUTH_COOKIE_PATH = '/api';
 
 // Get trusted origins from environment and defaults
 function getTrustedOrigins(): string[] {
@@ -52,46 +47,61 @@ function getTrustedOrigins(): string[] {
   return origins;
 }
 
-const authOptions = {
-  database: db,
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:5002',
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: false,
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24,
-    cookieCache: {
-      enabled: false,
+function createDatabaseConnection(dbPath: string): any {
+  const dir = path.dirname(dbPath);
+  if (dir !== '.') {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  return new Database(dbPath);
+}
+
+export function createAuth(dbPath?: string) {
+  const db = createDatabaseConnection(resolveAuthDbPath(dbPath));
+
+  const authOptions = {
+    database: db,
+    secret: process.env.BETTER_AUTH_SECRET,
+    baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:5002',
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: false,
     },
-  },
-  advanced: {
-    defaultCookieAttributes: {
-      path: AUTH_COOKIE_PATH,
+    session: {
+      expiresIn: 60 * 60 * 24 * 7, // 7 days
+      updateAge: 60 * 60 * 24,
+      cookieCache: {
+        enabled: false,
+      },
     },
-  },
-  trustedOrigins: getTrustedOrigins(),
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (user) => {
-          // Auto-generate billing wallet for new users
-          try {
-            await generateWalletForUser(user.id);
-            console.log(`Created billing wallet for user ${user.id}`);
-          } catch (error) {
-            // Don't fail signup if wallet creation fails
-            // User can create wallet later via API
-            console.error(`Failed to create wallet for user ${user.id}:`, error);
-          }
+    advanced: {
+      defaultCookieAttributes: {
+        path: AUTH_COOKIE_PATH,
+      },
+    },
+    trustedOrigins: getTrustedOrigins(),
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            // Auto-generate billing wallet for new users
+            try {
+              await generateWalletForUser(user.id);
+              console.log(`Created billing wallet for user ${user.id}`);
+            } catch (error) {
+              // Don't fail signup if wallet creation fails
+              // User can create wallet later via API
+              console.error(`Failed to create wallet for user ${user.id}:`, error);
+            }
+          },
         },
       },
     },
-  },
-} satisfies BetterAuthOptions;
+  } satisfies BetterAuthOptions;
 
-export const auth = betterAuth(authOptions);
+  return betterAuth(authOptions);
+}
 
-export default auth;
+export type AuthInstance = ReturnType<typeof createAuth>;
+
+export default createAuth;

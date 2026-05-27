@@ -13,14 +13,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm run build:deps && tsc",
+    "build:deps": "pnpm --filter @openfacilitator/core build && pnpm --filter @openfacilitator/sdk build",
     "dev": "NODE_ENV=development tsx watch src/index.ts",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
+    "lint": "pnpm run build:deps && tsc --noEmit",
     "seed": "tsx scripts/seed-transactions.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "pnpm run build:deps && vitest run --exclude='dist/**'",
+    "test:watch": "vitest --exclude='dist/**'",
     "test:migration": "npm run build && node scripts/smoke-test-migration.mjs"
   },
   "dependencies": {
@@ -31,17 +32,18 @@
     "@solana/web3.js": "^1.98.4",
     "@stacks/transactions": "^7.3.1",
     "@x402jobs/sdk": "0.2.2",
-    "better-auth": "^1.2.0",
-    "better-sqlite3": "^11.6.0",
+    "better-auth": "^1.6.11",
+    "better-sqlite3": "^12.5.0",
     "bs58": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2",
+    "express": "^4.22.2",
+    "fastestsmallesttextencoderdecoder": "^1.0.22",
     "helmet": "^8.0.0",
     "nanoid": "^5.0.9",
     "node-cron": "^4.2.1",
     "viem": "^2.21.0",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
@@ -53,6 +55,6 @@
     "supertest": "^7.2.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.7"
   }
 }

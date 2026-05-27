@@ -35,8 +35,8 @@ const paymentRequirementsSchema = z.object({
   description: z.string().optional(),
   mimeType: z.string().optional(),
   maxTimeoutSeconds: z.number().optional(),
-  outputSchema: z.record(z.unknown()).optional(),
-  extra: z.record(z.unknown()).optional(),
+  outputSchema: z.record(z.string(), z.unknown()).optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
 }).refine(
   (data) => data.maxAmountRequired !== undefined || data.amount !== undefined,
   { message: 'Either maxAmountRequired (v1) or amount (v2) must be provided', path: ['amount'] }

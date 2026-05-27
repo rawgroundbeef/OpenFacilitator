@@ -20,7 +20,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -28,11 +28,12 @@
     "@solana/web3.js": "^1.98.4",
     "@stacks/transactions": "^7.3.1",
     "bs58": "^6.0.0",
+    "fastestsmallesttextencoderdecoder": "^1.0.22",
     "viem": "^2.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
     "typescript": "^5.7.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.7"
   }
 }

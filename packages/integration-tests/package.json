@@ -23,10 +23,10 @@
     "dotenv": "^16.4.7",
     "typescript": "^5.8.3",
     "viem": "^2.23.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.7"
   },
   "dependencies": {
-    "@openfacilitator/sdk": "workspace:*"
+    "@openfacilitator/sdk": "workspace:*",
+    "fastestsmallesttextencoderdecoder": "^1.0.22"
   }
 }
-
