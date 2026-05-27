@@ -17,6 +17,7 @@ import { getOrCreateRefundConfig } from '../db/refund-configs.js';
 import { reportFailure, executeClaimPayout, approveClaim, rejectClaim } from '../services/claims.js';
 import { generateRefundWallet, getRefundWalletBalances, deleteRefundWallet, SUPPORTED_REFUND_NETWORKS } from '../services/refund-wallet.js';
 import { withConfiguredTestnetSupport } from '../services/public-testnet-support.js';
+import { observeFacilitatorOperation } from '../services/public-metrics.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router: IRouter = Router();
@@ -65,8 +66,13 @@ function normalizePaymentPayload(payload: string | object): string {
   return Buffer.from(JSON.stringify(payload)).toString('base64');
 }
 
+function elapsedMs(start: bigint): number {
+  return Number((process.hrtime.bigint() - start) / 1_000_000n);
+}
+
 /**
- * Get free facilitator configuration from environment
+ * Get public endpoint configuration from environment.
+ * The FREE_FACILITATOR_* env vars are legacy names kept for deploy compatibility.
  */
 function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?: string; solanaPrivateKey?: string; stacksPrivateKey?: string; evmAddress?: string } | null {
   const evmPrivateKey = process.env.FREE_FACILITATOR_EVM_KEY;
@@ -129,7 +135,7 @@ function getFreeFacilitatorConfig(): { config: FacilitatorConfig; evmPrivateKey?
 
   let config: FacilitatorConfig = {
     id: 'free-facilitator',
-    name: 'OpenFacilitator Free',
+    name: 'OpenFacilitator',
     subdomain: 'free',
     ownerAddress: (evmAddress || '0x0000000000000000000000000000000000000000') as `0x${string}`,
     supportedChains,
@@ -167,8 +173,8 @@ router.get('/free/supported', (_req: Request, res: Response) => {
 
   if (!facilitatorData) {
     res.status(503).json({
-      error: 'Free facilitator not configured',
-      message: 'The free facilitator is not available. Please self-host or use a managed instance.',
+      error: 'Public endpoint not configured',
+      message: 'pay.openfacilitator.io is not available. Please self-host or use a managed instance.',
     });
     return;
   }
@@ -242,7 +248,7 @@ router.post('/free/verify', async (req: Request, res: Response) => {
     if (!facilitatorData) {
       res.status(503).json({
         isValid: false,
-        invalidReason: 'Free facilitator not configured',
+        invalidReason: 'Public endpoint not configured',
       });
       return;
     }
@@ -261,7 +267,14 @@ router.post('/free/verify', async (req: Request, res: Response) => {
     const { paymentRequirements } = parsed.data;
 
     const facilitator = createFacilitator(facilitatorData.config);
+    const operationStart = process.hrtime.bigint();
     const result = await facilitator.verify(paymentPayload, paymentRequirements);
+    observeFacilitatorOperation({
+      operation: 'verify',
+      network: paymentRequirements.network,
+      success: result.isValid,
+      durationMs: elapsedMs(operationStart),
+    });
 
     // Log verification (for analytics)
     if (result.payer) {
@@ -304,7 +317,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
         transaction: '',
         payer: '',
         network: networkForError,
-        errorReason: 'Free facilitator not configured',
+        errorReason: 'Public endpoint not configured',
       });
       return;
     }
@@ -340,7 +353,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
           transaction: '',
           payer: '',
           network: paymentRequirements.network,
-          errorReason: 'Solana not available on free facilitator',
+          errorReason: 'Solana not available on this public endpoint',
         });
         return;
       }
@@ -352,7 +365,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
           transaction: '',
           payer: '',
           network: paymentRequirements.network,
-          errorReason: 'Stacks not available on free facilitator',
+          errorReason: 'Stacks not available on this public endpoint',
         });
         return;
       }
@@ -364,14 +377,21 @@ router.post('/free/settle', async (req: Request, res: Response) => {
           transaction: '',
           payer: '',
           network: paymentRequirements.network,
-          errorReason: 'EVM chains not available on free facilitator',
+          errorReason: 'EVM chains not available on this public endpoint',
         });
         return;
       }
       privateKey = facilitatorData.evmPrivateKey;
     }
 
+    const operationStart = process.hrtime.bigint();
     const result = await facilitator.settle(paymentPayload, paymentRequirements, privateKey);
+    observeFacilitatorOperation({
+      operation: 'settle',
+      network: paymentRequirements.network,
+      success: result.success,
+      durationMs: elapsedMs(operationStart),
+    });
 
     // Log settlement
     const decoded = Buffer.from(paymentPayload, 'base64').toString('utf-8');
@@ -418,7 +438,7 @@ router.post('/free/settle', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /free/info - Get info about the free facilitator
+ * GET /free/info - Legacy info endpoint for pay.openfacilitator.io
  */
 router.get('/free/info', (_req: Request, res: Response) => {
   const facilitatorData = getFreeFacilitatorConfig();
@@ -436,12 +456,12 @@ router.get('/free/info', (_req: Request, res: Response) => {
     : undefined;
 
   res.json({
-    name: 'OpenFacilitator Free',
-    description: 'Free public x402 payment facilitator. No account required.',
+    name: 'OpenFacilitator',
+    description: 'Dogfooded public x402 payment endpoint. No account required.',
     endpoints: {
-      supported: 'https://api.openfacilitator.io/free/supported',
-      verify: 'https://api.openfacilitator.io/free/verify',
-      settle: 'https://api.openfacilitator.io/free/settle',
+      supported: 'https://pay.openfacilitator.io/supported',
+      verify: 'https://pay.openfacilitator.io/verify',
+      settle: 'https://pay.openfacilitator.io/settle',
     },
     networks: {
       base: facilitatorData?.evmPrivateKey ? {
@@ -476,7 +496,7 @@ router.get('/free/info', (_req: Request, res: Response) => {
 });
 
 // ============================================
-// DEMO ENDPOINT (for testing refund protection)
+// DEMO ENDPOINT (for testing paid API failures)
 // ============================================
 
 // Demo endpoint configuration
@@ -528,22 +548,14 @@ async function getDemoRequirements(): Promise<PaymentRequirements[]> {
 
 /**
  * Demo x402 resource that randomly fails ~50% of the time.
- * Used to test refund protection flow.
  * Supports both Base (EVM) and Solana payments.
  *
  * Uses the SDK middleware to dogfood our own payment handling.
  * The middleware handles 402 responses, verification, and settlement.
- * We handle the random failure and manual refund reporting.
  */
 const demoPaymentMiddleware = createPaymentMiddleware({
   facilitator: demoFacilitator,
   getRequirements: getDemoRequirements,
-  // Enable refundProtection so 402 includes supportsRefunds: true
-  // But we'll handle the actual failure reporting manually for custom behavior
-  refundProtection: process.env.DEMO_REFUND_API_KEY ? {
-    apiKey: process.env.DEMO_REFUND_API_KEY,
-    facilitatorUrl: process.env.API_URL || 'https://api.openfacilitator.io',
-  } : undefined,
 });
 
 // GET just returns 402 (middleware handles it)
@@ -566,34 +578,10 @@ router.post('/demo/unreliable', demoPaymentMiddleware, async (req: Request, res:
   const shouldFail = Math.random() < 0.5;
 
   if (shouldFail) {
-    // Report failure manually (not throwing, so middleware won't auto-report)
-    const demoApiKey = process.env.DEMO_REFUND_API_KEY;
-    let refundReported = false;
-    let claimId: string | undefined;
-
-    console.log('[demo/unreliable] Failure triggered, reporting refund...');
-
-    if (demoApiKey) {
-      const claimResult = await reportFailure({
-        apiKey: demoApiKey,
-        originalTxHash: paymentContext.transactionHash,
-        userWallet: paymentContext.userWallet,
-        amount: paymentContext.amount,
-        asset: paymentContext.asset,
-        network: paymentContext.network,
-        reason: 'Demo endpoint simulated failure',
-      });
-      console.log('[demo/unreliable] Refund report result:', claimResult);
-      refundReported = claimResult.success;
-      claimId = claimResult.claimId;
-    }
-
     res.status(500).json({
       success: false,
       error: 'Simulated random failure',
-      message: 'This endpoint randomly fails to demonstrate refund protection.',
-      refundReported,
-      claimId,
+      message: 'This endpoint randomly fails to demonstrate paid API error handling.',
       transactionHash: paymentContext.transactionHash,
       payer: paymentContext.userWallet,
       amount: paymentContext.amount,
@@ -1361,15 +1349,15 @@ router.get('/api/verify', async (req: Request, res: Response) => {
 
     const baseUrl = process.env.DASHBOARD_URL || 'https://openfacilitator.io';
 
-    // Handle special case: free facilitator (pay.openfacilitator.io)
+    // Handle special case: public pay.openfacilitator.io endpoint
     if (facilitatorId === 'pay' || facilitatorId === 'pay.openfacilitator.io') {
-      // Free facilitator supports refunds if DEMO_REFUND_API_KEY is configured
+      // The public endpoint supports refunds if DEMO_REFUND_API_KEY is configured.
       const supportsRefunds = !!process.env.DEMO_REFUND_API_KEY;
       res.json({
         verified: true,
         supportsRefunds,
         facilitator: 'pay',
-        facilitatorName: 'OpenFacilitator (Free)',
+        facilitatorName: 'OpenFacilitator',
         badgeUrl: supportsRefunds ? `${baseUrl}/badges/refund-protected.svg` : null,
         verifyUrl: `${baseUrl}/verify?facilitator=pay`,
       });

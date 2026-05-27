@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Deploy your own branded x402 payment facilitator in minutes.</strong>
+  <strong>Free, fast, open source x402 payment infrastructure.</strong>
 </p>
 
 <p align="center">
@@ -20,11 +20,24 @@
 
 ---
 
-OpenFacilitator is an open source platform that lets anyone deploy their own x402 payment facilitator. Self-host for free or use our managed service for instant setup.
+OpenFacilitator is an open source x402 payment facilitator. Use the public `pay.openfacilitator.io` endpoint with no signup, or fork and self-host when you need full control.
 
 ## 🚀 Quick Start
 
-### Self-Hosted (Free)
+### Public Endpoint
+
+```bash
+npm install @openfacilitator/sdk
+```
+
+```typescript
+import { OpenFacilitator } from '@openfacilitator/sdk';
+
+// Uses https://pay.openfacilitator.io by default
+const facilitator = new OpenFacilitator();
+```
+
+### Self-Hosted
 
 ```bash
 # Clone the repository
@@ -36,11 +49,6 @@ docker compose up -d
 ```
 
 Your facilitator will be running at `http://localhost:3001`
-
-### Managed Service
-
-Visit [openfacilitator.io](https://openfacilitator.io) to deploy your own facilitator:
-- **$5/mo**: Bring your own domain with auto-SSL
 
 ## 📦 Project Structure
 
@@ -306,4 +314,3 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ---
 
 Built with ❤️ for the x402 ecosystem
-

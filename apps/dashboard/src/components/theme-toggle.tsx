@@ -1,71 +1,48 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Moon, Sun } from 'lucide-react';
+
+const THEME_STORAGE_KEY = 'openfacilitator-theme';
+
+type Theme = 'light' | 'dark';
+
+function applyTheme(theme: Theme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  document.documentElement.dataset.theme = theme;
+}
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch
   useEffect(() => {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const initialTheme = storedTheme === 'dark' ? 'dark' : 'light';
+
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return <div className="w-4 h-4" />;
-  }
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  };
+
+  const isDark = mounted && theme === 'dark';
 
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 focus:outline-none transition-colors">
-          {theme === 'dark' ? (
-            <Moon className="w-4 h-4" />
-          ) : theme === 'light' ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Monitor className="w-4 h-4" />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36 p-1">
-        <button
-          onClick={() => setTheme('light')}
-          className={`flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors ${
-            theme === 'light'
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-          }`}
-        >
-          <Sun className="w-4 h-4" />
-          Light
-        </button>
-        <button
-          onClick={() => setTheme('dark')}
-          className={`flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors ${
-            theme === 'dark'
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-          }`}
-        >
-          <Moon className="w-4 h-4" />
-          Dark
-        </button>
-        <button
-          onClick={() => setTheme('system')}
-          className={`flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md transition-colors ${
-            theme === 'system'
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-          }`}
-        >
-          <Monitor className="w-4 h-4" />
-          System
-        </button>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-muted/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </button>
   );
 }

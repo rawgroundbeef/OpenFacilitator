@@ -18,8 +18,8 @@ const bottomNavItems = [
 
 const moreMenuItems = [
   { href: '/docs/api', label: 'HTTP API' },
-  { href: '/docs/dns-setup', label: 'DNS Setup' },
   { href: '/docs/self-hosting', label: 'Self-Hosting' },
+  { href: '/docs/dns-setup', label: 'DNS Setup' },
   { href: '/docs/sdk/errors', label: 'Error Handling' },
 ];
 

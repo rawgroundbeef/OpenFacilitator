@@ -61,37 +61,14 @@ export {
   assertNever,
 } from './utils';
 
-// Claims / Refunds
-export {
-  reportFailure,
-  getClaimable,
-  getClaimHistory,
-  executeClaim,
-  type ReportFailureParams,
-  type ReportFailureResponse,
-  type GetClaimableParams,
-  type ClaimableItem,
-  type GetClaimableResponse,
-  type ClaimHistoryItem,
-  type GetClaimHistoryResponse,
-  type ExecuteClaimParams,
-  type ExecuteClaimResponse,
-} from './claims';
-
 // Middleware
 export {
-  withRefundProtection,
   createPaymentContext,
   createPaymentMiddleware,
-  createRefundMiddleware,
   honoPaymentMiddleware,
-  honoRefundMiddleware,
-  type RefundProtectionConfig,
-  type MiddlewareRefundConfig,
   type PaymentContext,
   type PaymentRequest,
   type PaymentMiddlewareConfig,
-  type HonoRefundConfig,
   type HonoPaymentConfig,
 } from './middleware';
 ```
@@ -178,9 +155,6 @@ interface PaymentMiddlewareConfig {
     | PaymentRequirements[]
     | Promise<PaymentRequirements | PaymentRequirements[]>;
 
-  /** Optional refund protection config */
-  refundProtection?: MiddlewareRefundConfig;
-
   /** Optional callback when 402 is returned */
   on402?: (req: Request, res: Response, requirements: PaymentRequirements[]) => void | Promise<void>;
 }
@@ -203,7 +177,6 @@ interface HonoPaymentConfig {
     | PaymentRequirements
     | PaymentRequirements[]
     | Promise<PaymentRequirements | PaymentRequirements[]>;
-  refundProtection?: MiddlewareRefundConfig;
 }
 ```
 
@@ -223,132 +196,6 @@ interface PaymentContext {
   network: string;          // Network identifier
 }
 ```
-
-### Refund Middleware
-
-```typescript
-// Express
-function createRefundMiddleware(config: RefundProtectionConfig): ExpressMiddleware
-
-// Hono
-function honoRefundMiddleware(config: HonoRefundConfig): HonoMiddleware
-
-// Standalone wrapper
-function withRefundProtection<T>(
-  config: RefundProtectionConfig,
-  handler: (context: PaymentContext) => Promise<T>
-): (context: PaymentContext) => Promise<T>
-```
-
-### MiddlewareRefundConfig
-
-```typescript
-interface MiddlewareRefundConfig {
-  /** API key from OpenFacilitator dashboard */
-  apiKey: string;
-  /** Facilitator URL. Defaults to middleware's facilitator URL */
-  facilitatorUrl?: string;
-  /** Filter which errors trigger refund reports. Default: all errors */
-  shouldReport?: (error: Error) => boolean;
-  /** Called when failure is successfully reported */
-  onReport?: (claimId: string | undefined, error: Error) => void;
-  /** Called if the report itself fails */
-  onReportError?: (reportError: Error, originalError: Error) => void;
-}
-```
-
-### RefundProtectionConfig (standalone)
-
-```typescript
-interface RefundProtectionConfig {
-  apiKey: string;
-  facilitatorUrl: string;
-  shouldReport?: (error: Error) => boolean;
-  onReport?: (claimId: string | undefined, error: Error) => void;
-  onReportError?: (reportError: Error, originalError: Error) => void;
-}
-```
-
----
-
-## Claims Functions
-
-```typescript
-/** Report a failed payment for refund */
-async function reportFailure(params: ReportFailureParams): Promise<ReportFailureResponse>
-
-interface ReportFailureParams {
-  facilitatorUrl: string;
-  apiKey: string;
-  originalTxHash: string;
-  userWallet: string;
-  amount: string;
-  asset: string;
-  network: string;
-  reason?: string;
-}
-
-interface ReportFailureResponse {
-  success: boolean;
-  claimId?: string;
-  error?: string;
-}
-
-/** Get pending refund claims for a wallet */
-async function getClaimable(params: GetClaimableParams): Promise<GetClaimableResponse>
-
-interface GetClaimableParams {
-  facilitatorUrl: string;
-  wallet: string;
-  facilitator?: string;
-}
-
-interface GetClaimableResponse {
-  claims: ClaimableItem[];
-}
-
-interface ClaimableItem {
-  id: string;
-  originalTxHash: string;
-  amount: string;
-  asset: string;
-  network: string;
-  reason?: string;
-  status: 'pending' | 'approved';
-  reportedAt: string;
-  expiresAt?: string;
-}
-
-/** Get full claim history for a wallet */
-async function getClaimHistory(params: GetClaimableParams): Promise<GetClaimHistoryResponse>
-
-interface GetClaimHistoryResponse {
-  claims: ClaimHistoryItem[];
-}
-
-interface ClaimHistoryItem extends ClaimableItem {
-  status: 'pending' | 'approved' | 'paid' | 'rejected' | 'expired';
-  payoutTxHash?: string;
-  paidAt?: string;
-}
-
-/** Execute an approved refund claim */
-async function executeClaim(params: ExecuteClaimParams): Promise<ExecuteClaimResponse>
-
-interface ExecuteClaimParams {
-  facilitatorUrl: string;
-  claimId: string;
-  signature?: string;
-}
-
-interface ExecuteClaimResponse {
-  success: boolean;
-  transactionHash?: string;
-  error?: string;
-}
-```
-
----
 
 ## Network Utilities
 

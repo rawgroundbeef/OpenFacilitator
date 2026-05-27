@@ -6,7 +6,9 @@
  */
 import { Router, type Request, type Response, type IRouter } from 'express';
 import { OpenFacilitator, createPaymentMiddleware, type PaymentRequirements } from '@openfacilitator/sdk';
-import { getGlobalStats } from '../db/transactions.js';
+import { getGlobalStats, getPublicFacilitatorStats } from '../db/transactions.js';
+import { getFacilitatorByDomainOrSubdomain } from '../db/facilitators.js';
+import { getPublicOperationalMetrics } from '../services/public-metrics.js';
 
 const router: IRouter = Router();
 
@@ -24,9 +26,72 @@ const BASE_TREASURY = process.env.TREASURY_BASE!;
 // Facilitator endpoint (configurable for self-hosted deployments)
 const FACILITATOR_URL = process.env.STATS_FACILITATOR_URL || 'https://pay.openfacilitator.io';
 const API_URL = process.env.API_URL || 'https://api.openfacilitator.io';
+const PUBLIC_STATS_CACHE_MS = 60 * 60 * 1000;
 
 // Initialize SDK client
 const facilitator = new OpenFacilitator({ url: FACILITATOR_URL });
+
+function getPublicStatsFacilitatorId(): string {
+  if (process.env.PUBLIC_STATS_FACILITATOR_ID) {
+    return process.env.PUBLIC_STATS_FACILITATOR_ID;
+  }
+
+  const publicFacilitator =
+    getFacilitatorByDomainOrSubdomain('pay.openfacilitator.io') ??
+    getFacilitatorByDomainOrSubdomain('pay');
+
+  return publicFacilitator?.id ?? 'free-facilitator';
+}
+
+function buildPublicStatsPayload() {
+  const days = 30;
+  const publicFacilitatorId = getPublicStatsFacilitatorId();
+
+  return {
+    success: true,
+    generatedAt: new Date().toISOString(),
+    facilitator: {
+      name: 'OpenFacilitator',
+      endpoint: 'https://pay.openfacilitator.io',
+      canonicalApi: 'https://pay.openfacilitator.io',
+    },
+    usage: getPublicFacilitatorStats(publicFacilitatorId, days),
+    performance: getPublicOperationalMetrics(),
+    infrastructure: {
+      solana: {
+        rpcProvider: 'Helius',
+        stream: 'LaserStream-ready',
+        note: 'Solana confirmation metrics are collected from live facilitator traffic. A dedicated streaming worker can replace polling as volume grows.',
+      },
+      scaling: {
+        current: 'single API service with in-process rolling latency metrics',
+        next: 'split Solana watcher worker and add Redis only when cross-instance coordination is needed',
+      },
+    },
+  };
+}
+
+let publicStatsCache: {
+  expiresAt: number;
+  payload: ReturnType<typeof buildPublicStatsPayload>;
+} | null = null;
+
+/**
+ * GET /public/stats - Free public platform stats for the homepage
+ */
+router.get('/public/stats', (_req: Request, res: Response) => {
+  const now = Date.now();
+
+  if (!publicStatsCache || publicStatsCache.expiresAt <= now) {
+    publicStatsCache = {
+      expiresAt: now + PUBLIC_STATS_CACHE_MS,
+      payload: buildPublicStatsPayload(),
+    };
+  }
+
+  res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=300');
+  res.json(publicStatsCache.payload);
+});
 
 // Shared output schema for stats response
 const OUTPUT_SCHEMA = {
@@ -124,14 +189,9 @@ async function getAllRequirements(): Promise<PaymentRequirements[]> {
   return [solana, base];
 }
 
-// Create middleware with refund protection if API key is configured
 const statsPaymentMiddleware = createPaymentMiddleware({
   facilitator,
   getRequirements: getAllRequirements,
-  refundProtection: process.env.DEMO_REFUND_API_KEY ? {
-    apiKey: process.env.DEMO_REFUND_API_KEY,
-    facilitatorUrl: API_URL,
-  } : undefined,
 });
 
 // Handler for stats requests (called after middleware)
@@ -163,18 +223,9 @@ router.get('/stats/base', statsPaymentMiddleware, handleStatsSuccess);
 router.get('/stats', async (_req: Request, res: Response) => {
   const requirements = await getAllRequirements();
 
-  // Add supportsRefunds if refund protection is configured
-  const accepts = requirements.map((req) => ({
-    ...req,
-    extra: {
-      ...req.extra,
-      ...(process.env.DEMO_REFUND_API_KEY ? { supportsRefunds: true } : {}),
-    },
-  }));
-
   res.status(402).json({
     x402Version: 2,
-    accepts,
+    accepts: requirements,
     error: 'Payment Required',
     message: 'Use /stats/solana or /stats/base for network-specific endpoints',
     endpoints: {

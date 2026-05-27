@@ -12,6 +12,7 @@ import { statsRouter } from './routes/stats.js';
 import { discoveryRouter } from './routes/discovery.js';
 import { internalWebhooksRouter } from './routes/internal-webhooks.js';
 import { resolveFacilitator } from './middleware/tenant.js';
+import { observeHttpRequest } from './services/public-metrics.js';
 
 const AUTH_SESSION_DATA_COOKIE_PREFIXES = [
   'better-auth.session_data',
@@ -28,6 +29,7 @@ function getCorsOrigins(): string[] {
   const defaultOrigins = [
     'http://localhost:3000',
     'http://localhost:3002',
+    'http://localhost:3030',
     'http://localhost:5001',
   ];
 
@@ -76,6 +78,40 @@ function clearLegacyAuthSessionDataCookies(req: Request, res: Response, next: Ne
   next();
 }
 
+function shouldRecordPublicMetric(path: string): boolean {
+  return [
+    '/free/supported',
+    '/free/verify',
+    '/free/settle',
+    '/free/info',
+    '/public/stats',
+    '/supported',
+    '/verify',
+    '/settle',
+  ].some((observedPath) => path === observedPath);
+}
+
+function recordPublicMetrics(req: Request, res: Response, next: NextFunction): void {
+  if (!shouldRecordPublicMetric(req.path)) {
+    next();
+    return;
+  }
+
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    const elapsedNs = process.hrtime.bigint() - start;
+    observeHttpRequest({
+      path: req.path,
+      method: req.method,
+      statusCode: res.statusCode,
+      durationMs: Number(elapsedNs / 1_000_000n),
+    });
+  });
+
+  next();
+}
+
 /**
  * Create the Express server with all middleware and routes
  */
@@ -96,6 +132,7 @@ export function createServer(): Express {
   );
   app.use(clearLegacyAuthSessionDataCookies);
   app.use(express.json());
+  app.use(recordPublicMetrics);
 
   // Health check
   app.get('/health', (_req: Request, res: Response) => {
@@ -127,7 +164,7 @@ export function createServer(): Express {
   // Discovery API (service discovery for x402 resources - Bazaar)
   app.use('/', discoveryRouter);
 
-  // Public free facilitator routes (no auth required)
+  // Legacy public endpoint aliases (no auth required)
   app.use('/', publicRouter);
 
   // Multi-tenant facilitator routes

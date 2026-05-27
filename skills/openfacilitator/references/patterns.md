@@ -299,99 +299,7 @@ app.post('/api/generate', honoPaymentMiddleware({
 
 ---
 
-## 5. Refund Protection
-
-Automatically report failures for refund when your handler throws.
-
-### Middleware with Refund Protection
-
-```typescript
-import { honoPaymentMiddleware } from '@openfacilitator/sdk';
-
-app.post('/api/resource', honoPaymentMiddleware({
-  facilitator: 'https://pay.openfacilitator.io',
-  getRequirements: (c) => ({
-    scheme: 'exact',
-    network: 'base',
-    maxAmountRequired: '1000000',
-    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    payTo: '0xYOUR_WALLET_ADDRESS',
-  }),
-  refundProtection: {
-    apiKey: process.env.REFUND_API_KEY!,
-    // facilitatorUrl is inherited from the facilitator config
-  },
-}), async (c) => {
-  // If this handler throws, the middleware automatically calls reportFailure()
-  // with the payment context (txHash, wallet, amount, etc.)
-  const result = await riskyOperation();
-  return c.json(result);
-});
-```
-
-### Standalone Refund Wrapper (manual flow)
-
-```typescript
-import { OpenFacilitator, withRefundProtection, createPaymentContext } from '@openfacilitator/sdk';
-
-const facilitator = new OpenFacilitator();
-
-app.post('/api/resource', async (c) => {
-  const xPayment = c.req.header('x-payment');
-  // ... verify and settle as in pattern 3 ...
-
-  const settleResult = await facilitator.settle(paymentPayload, requirements);
-
-  // Create payment context from settle result
-  const paymentContext = createPaymentContext(
-    settleResult,
-    paymentPayload,
-    requirements,
-  );
-
-  // Wrap your business logic with refund protection
-  const protectedHandler = withRefundProtection(
-    {
-      apiKey: process.env.REFUND_API_KEY!,
-      facilitatorUrl: 'https://pay.openfacilitator.io',
-    },
-    async (ctx) => {
-      // If this throws, failure is reported automatically
-      return await doBusinessLogic(ctx);
-    },
-  );
-
-  const result = await protectedHandler(paymentContext);
-  return c.json(result);
-});
-```
-
-### Manual Refund Reporting
-
-```typescript
-import { reportFailure } from '@openfacilitator/sdk';
-
-// After settlement, if your business logic fails:
-try {
-  await processOrder(settleResult.transaction);
-} catch (error) {
-  await reportFailure({
-    facilitatorUrl: 'https://pay.openfacilitator.io',
-    apiKey: process.env.REFUND_API_KEY!,
-    originalTxHash: settleResult.transaction,
-    userWallet: settleResult.payer,
-    amount: requirements.maxAmountRequired,
-    asset: requirements.asset,
-    network: requirements.network,
-    reason: error.message,
-  });
-  throw error;
-}
-```
-
----
-
-## 6. Multi-Network Support
+## 5. Multi-Network Support
 
 Accept payment on multiple chains. Return an array from `getRequirements`.
 
@@ -444,7 +352,7 @@ The 402 response will include all accepted payment methods:
 
 ---
 
-## 7. Solana with Gas-Free Transactions
+## 6. Solana with Gas-Free Transactions
 
 Solana facilitators can act as fee payers so users don't need SOL for gas.
 
@@ -469,11 +377,11 @@ app.post('/api/resource', honoPaymentMiddleware({
 });
 ```
 
-The free facilitator at `pay.openfacilitator.io` provides Solana fee payer support. The `feePayer` address is included in the 402 response under `extra.feePayer` so clients know to structure the transaction accordingly.
+The public `pay.openfacilitator.io` endpoint provides Solana fee payer support. The `feePayer` address is included in the 402 response under `extra.feePayer` so clients know to structure the transaction accordingly.
 
 ---
 
-## 8. Stacks Integration
+## 7. Stacks Integration
 
 Accept STX, sBTC, or USDCx payments on Stacks.
 
@@ -509,7 +417,7 @@ Note: Stacks settlement polls the Hiro API for confirmation (up to ~5 minutes). 
 
 ---
 
-## 9. Custom Facilitator URL
+## 8. Custom Facilitator URL
 
 Use your own branded facilitator instead of the free shared one.
 

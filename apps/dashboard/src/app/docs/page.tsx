@@ -8,7 +8,7 @@ export default function DocsPage() {
           OpenFacilitator <span className="text-primary">Documentation</span>
         </h1>
         <p className="text-lg text-muted-foreground">
-          Run your own x402 payment facilitator with full network support.
+          Use the public pay.openfacilitator.io endpoint, or fork the open source stack when you need full control.
         </p>
       </div>
 
@@ -16,7 +16,7 @@ export default function DocsPage() {
         <Link href="/docs/quickstart" className="block p-6 border border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors">
           <h3 className="font-semibold text-lg text-foreground">Quickstart</h3>
           <p className="text-muted-foreground text-sm mt-1">
-            Get started in 5 minutes
+            Add x402 payments with the public endpoint
           </p>
         </Link>
 
@@ -30,7 +30,7 @@ export default function DocsPage() {
         <Link href="/docs/api" className="block p-6 border border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors">
           <h3 className="font-semibold text-lg text-foreground">HTTP API</h3>
           <p className="text-muted-foreground text-sm mt-1">
-            Raw API endpoints
+            Raw pay.openfacilitator.io endpoints
           </p>
         </Link>
 

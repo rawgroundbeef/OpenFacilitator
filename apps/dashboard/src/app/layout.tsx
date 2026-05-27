@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://openfacilitator.io';
-const title = 'OpenFacilitator - x402 Payment Facilitators';
-const description = 'Deploy your own branded x402 payment facilitator in minutes';
+const title = 'OpenFacilitator - x402 Payment Infrastructure';
+const description = 'Fast, open source x402 facilitator infrastructure for apps and agents.';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,6 +19,19 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
   variable: '--font-mono',
 });
+
+const themeScript = `
+  try {
+    var theme = window.localStorage.getItem('openfacilitator-theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.dataset.theme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.dataset.theme = 'light';
+    }
+  } catch (_) {}
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -65,6 +78,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
         <Toaster />
