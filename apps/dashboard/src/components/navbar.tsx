@@ -4,14 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Github, FileText, Activity } from 'lucide-react';
-import { useAuth } from '@/components/auth/auth-provider';
-import { UserMenu } from '@/components/user-menu';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function Navbar() {
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isDocsPage = pathname?.startsWith('/docs');
@@ -60,14 +56,6 @@ export function Navbar() {
               GitHub
             </a>
             <ThemeToggle />
-
-            {/* Auth-aware section */}
-            {!isLoading && isAuthenticated ? (
-              <div className="flex items-center gap-1">
-                <NotificationBell />
-                <UserMenu />
-              </div>
-            ) : null}
           </div>
 
           <div className="flex items-center gap-1 md:hidden">
@@ -120,16 +108,6 @@ export function Navbar() {
               GitHub
             </a>
 
-            <div className="border-t border-border/50 pt-2">
-              {!isLoading && isAuthenticated ? (
-                <div className="px-3 py-3">
-                  <div className="flex items-center gap-2">
-                    <NotificationBell />
-                    <UserMenu />
-                  </div>
-                </div>
-              ) : null}
-            </div>
           </div>
         </div>
       )}
