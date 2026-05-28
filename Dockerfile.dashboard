@@ -6,7 +6,7 @@ RUN corepack enable && corepack prepare pnpm@9.14.2 --activate
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/core/package.json ./packages/core/
 COPY apps/dashboard/package.json ./apps/dashboard/
 
@@ -45,4 +45,3 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "apps/dashboard/server.js"]
-
