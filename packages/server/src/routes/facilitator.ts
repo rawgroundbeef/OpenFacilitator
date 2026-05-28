@@ -92,8 +92,8 @@ const paymentRequirementsSchema = z.object({
   description: z.string().optional(),
   mimeType: z.string().optional(),
   maxTimeoutSeconds: z.number().optional(),
-  outputSchema: z.record(z.unknown()).optional(),
-  extra: z.record(z.unknown()).optional(),
+  outputSchema: z.record(z.string(), z.unknown()).optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
 }).refine(
   (data) => data.maxAmountRequired !== undefined || data.amount !== undefined,
   { message: 'Either maxAmountRequired (v1) or amount (v2) must be provided', path: ['amount'] }
@@ -138,8 +138,8 @@ const paymentMetadataHeaderSchema = z.string().transform((val, ctx) => {
 /**
  * Build a dynamic Zod schema for validating payment metadata against required fields
  */
-function buildMetadataSchema(requiredFields: RequiredFieldDefinition[]): z.ZodObject<z.ZodRawShape> {
-  const shape: z.ZodRawShape = {};
+function buildMetadataSchema(requiredFields: RequiredFieldDefinition[]): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const field of requiredFields) {
     let fieldSchema: z.ZodTypeAny;
@@ -150,15 +150,13 @@ function buildMetadataSchema(requiredFields: RequiredFieldDefinition[]): z.ZodOb
         break;
       case 'number':
         fieldSchema = z.coerce.number({
-          invalid_type_error: `${field.label || field.name} must be a number`,
+          error: `${field.label || field.name} must be a number`,
         });
         break;
       case 'select':
         if (field.options && field.options.length > 0) {
           fieldSchema = z.enum(field.options as [string, ...string[]], {
-            errorMap: () => ({
-              message: `${field.label || field.name} must be one of: ${field.options?.join(', ')}`,
-            }),
+            error: `${field.label || field.name} must be one of: ${field.options.join(', ')}`,
           });
         } else {
           fieldSchema = z.string();
