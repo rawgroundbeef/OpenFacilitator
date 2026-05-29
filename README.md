@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Free, fast, open source x402 payment infrastructure.</strong>
+  <strong>Free, fast, open source x402 facilitator for apps and agents.</strong>
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ---
 
-OpenFacilitator is an open source x402 payment facilitator. Use the public `pay.openfacilitator.io` endpoint with no signup, or fork and self-host when you need full control.
+OpenFacilitator is a free, public, open source x402 payment facilitator. Use `pay.openfacilitator.io` with no signup, no account, and no rate limits; fork the stack only when you need custom infrastructure or full control.
 
 ## 🚀 Quick Start
 
