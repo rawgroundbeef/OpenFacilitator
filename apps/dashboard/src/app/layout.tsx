@@ -4,9 +4,10 @@ import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://openfacilitator.io';
-const title = 'OpenFacilitator - x402 Payment Infrastructure';
-const description = 'Fast, open source x402 facilitator infrastructure for apps and agents.';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.openfacilitator.io';
+const title = 'OpenFacilitator - Free Open Source x402 Facilitator';
+const description =
+  'Free, fast, open source x402 facilitator for apps and agents. Start accepting payments with pay.openfacilitator.io.';
 
 const inter = Inter({
   subsets: ['latin'],

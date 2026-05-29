@@ -545,8 +545,8 @@ function HeroSection() {
           Start Accepting x402 Payments Today
         </h1>
         <p className="mx-auto mt-6 max-w-4xl text-center text-lg leading-8 text-muted-foreground">
-          <span className="block">OpenFacilitator is a free, public, open source x402 payment facilitator.</span>
-          <span className="block">Use pay.openfacilitator.io now, fork it when you need control.</span>
+          <span className="block">OpenFacilitator is a free, fast, open source x402 payment facilitator.</span>
+          <span className="block">Use pay.openfacilitator.io now. No signup, no account, no rate limits.</span>
         </p>
 
         <NetworkIconStrip />
