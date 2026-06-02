@@ -22,6 +22,13 @@ import {
  * Key: `${chainId}:${from}:${nonce}` - Value: timestamp when added
  */
 const processingNonces = new Map<string, number>();
+const ERC3009_GAS_BUFFER_PERCENT = 130n;
+const ERC3009_GAS_BUFFER_DENOMINATOR = 100n;
+
+function applyGasBuffer(estimatedGas: bigint): bigint {
+  return (estimatedGas * ERC3009_GAS_BUFFER_PERCENT + ERC3009_GAS_BUFFER_DENOMINATOR - 1n)
+    / ERC3009_GAS_BUFFER_DENOMINATOR;
+}
 
 // Clean up old entries every 5 minutes (nonces older than 10 minutes are removed)
 const NONCE_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -420,16 +427,28 @@ export async function executeERC3009Settlement(
     console.log('[ERC3009Settlement] Gas prices: baseFee=%s, priorityFee=%s, maxFee=%s',
       baseFee.toString(), maxPriorityFeePerGas.toString(), maxFeePerGas.toString());
 
-    // Check facilitator ETH balance
+    // Estimate gas dynamically. Base Mainnet USDC v2.2 can exceed a fixed 100k
+    // gas cap for first-time sender/payee storage paths and blacklist/pause
+    // checks, even though testnet deployments often fit under 100k.
+    const estimatedGas = await publicClient.estimateGas({
+      account: account.address,
+      to: tokenAddress,
+      data,
+    });
+    const gasLimit = applyGasBuffer(estimatedGas);
+    console.log('[ERC3009Settlement] Gas estimate: estimated=%s, bufferedLimit=%s',
+      estimatedGas.toString(), gasLimit.toString());
+
+    // Check facilitator ETH balance against the dynamic gas limit
     const ethBalance = await publicClient.getBalance({ address: account.address });
     console.log('[ERC3009Settlement] Facilitator ETH balance:', ethBalance.toString());
 
-    if (ethBalance < 100000n * maxFeePerGas) {
-      console.error('[ERC3009Settlement] Insufficient ETH for gas!');
+    if (ethBalance < gasLimit * maxFeePerGas) {
+      console.error('[ERC3009Settlement] Insufficient ETH for estimated gas!');
       releaseNonce(chainId, authorization.from, authorization.nonce);
       return {
         success: false,
-        errorMessage: 'Facilitator has insufficient ETH for gas',
+        errorMessage: 'Facilitator has insufficient ETH for estimated gas',
       };
     }
 
@@ -465,7 +484,7 @@ export async function executeERC3009Settlement(
         hash = await walletClient.sendTransaction({
           to: tokenAddress,
           data,
-          gas: 100000n, // ERC-3009 transfers use ~65k gas, 100k is safe
+          gas: gasLimit,
           maxFeePerGas: currentMaxFeePerGas,
           maxPriorityFeePerGas: currentMaxPriorityFeePerGas,
           nonce: currentNonce,
